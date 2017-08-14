@@ -13,7 +13,6 @@
 
 package org.opentripplanner.routing.graph;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.*;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -34,6 +33,7 @@ import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.common.MavenVersion;
 import org.opentripplanner.common.TurnRestriction;
 import org.opentripplanner.common.geometry.GraphUtils;
+import org.opentripplanner.debugserializer.DebugSerializer;
 import org.opentripplanner.graph_builder.annotation.GraphBuilderAnnotation;
 import org.opentripplanner.graph_builder.annotation.NoFutureDates;
 import org.opentripplanner.model.GraphBundle;
@@ -51,7 +51,6 @@ import org.opentripplanner.routing.services.notes.StreetNotesService;
 import org.opentripplanner.routing.trippattern.Deduplicator;
 import org.opentripplanner.routing.vertextype.PatternArriveVertex;
 import org.opentripplanner.routing.vertextype.TransitStop;
-import org.opentripplanner.standalone.Router;
 import org.opentripplanner.traffic.StreetSpeedSnapshotSource;
 import org.opentripplanner.updater.GraphUpdaterConfigurator;
 import org.opentripplanner.updater.GraphUpdaterManager;
@@ -836,6 +835,11 @@ public class Graph implements Serializable {
         LOG.debug("Writing edges...");
         out.writeObject(this);
         out.writeObject(edges);
+
+        Long time = System.currentTimeMillis();
+        DebugSerializer.debug(edges, new File("graph.txt"));
+        System.out.println("Debug time: " + ((System.currentTimeMillis()-time)/1000.0) + " sek");
+
         if (debugData) {
             // should we make debug info generation conditional?
             LOG.debug("Writing debug data...");
