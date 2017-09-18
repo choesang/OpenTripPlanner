@@ -14,9 +14,9 @@
 package org.opentripplanner.routing.core;
 
 import com.google.common.base.Objects;
-import org.onebusaway.gtfs.model.AgencyAndId;
-import org.onebusaway.gtfs.model.Route;
-import org.onebusaway.gtfs.model.Trip;
+import org.onebusaway2.gtfs.model.AgencyAndId;
+import org.onebusaway2.gtfs.model.Route;
+import org.onebusaway2.gtfs.model.Trip;
 import org.opentripplanner.api.common.Message;
 import org.opentripplanner.api.common.ParameterException;
 import org.opentripplanner.api.parameter.QualifiedModeSet;
@@ -1088,7 +1088,7 @@ public class RoutingRequest implements Cloneable, Serializable {
     }
 
     /**
-     * @return The weight (multiplier) for mode, the default weight is one. 
+     * @return The weight (multiplier) for mode, the default weight is one.
      * Allows de-prioritizing modes.
      */
     public double getModeWeight(TraverseMode traverseMode) {

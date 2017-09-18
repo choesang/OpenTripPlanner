@@ -1,7 +1,7 @@
 package org.opentripplanner.updater;
 
-import org.onebusaway.gtfs.model.AgencyAndId;
-import org.onebusaway.gtfs.model.Trip;
+import org.onebusaway2.gtfs.model.AgencyAndId;
+import org.onebusaway2.gtfs.model.Trip;
 import org.opentripplanner.GtfsTest;
 import uk.org.siri.siri20.CourseOfJourneyRefStructure;
 import uk.org.siri.siri20.VehicleActivityStructure;

@@ -19,7 +19,8 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import junit.framework.TestCase;
 
-import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
+import org.onebusaway2.gtfs.impl.calendar.CalendarServiceDataFactoryImpl;
+import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
 import org.opentripplanner.ConstantsForTests;
 import org.opentripplanner.gtfs.GtfsContext;
 import org.opentripplanner.gtfs.GtfsLibrary;
@@ -44,7 +45,10 @@ public class TestGraphPath extends TestCase {
         graph = new Graph();
         GTFSPatternHopFactory hl = new GTFSPatternHopFactory(context);
         hl.run(graph);
-        graph.putService(CalendarServiceData.class, GtfsLibrary.createCalendarServiceData(context.getDao()));
+        graph.putService(
+                CalendarServiceData.class,
+                CalendarServiceDataFactoryImpl.createCalendarServiceData(context.getDao())
+        );
     }
 
     public void testGraphPathOptimize() throws Exception {

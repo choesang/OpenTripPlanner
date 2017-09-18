@@ -28,7 +28,6 @@ import java.util.Set;
 import org.onebusaway.csv_entities.EntityHandler;
 import org.onebusaway.gtfs.impl.GtfsRelationalDaoImpl;
 import org.onebusaway.gtfs.model.*;
-import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
 import org.onebusaway.gtfs.serialization.GtfsReader;
 import org.onebusaway.gtfs.services.GenericMutableDao;
 import org.onebusaway.gtfs.services.GtfsMutableRelationalDao;
@@ -47,6 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+
+import static org.opentripplanner.gtfs.mapping.ModelMapper.mapDao;
 
 public class GtfsModule implements GraphBuilderModule {
 
@@ -103,19 +104,23 @@ public class GtfsModule implements GraphBuilderModule {
                     gtfsBundle.cacheDirectory = cacheDirectory;
                 if (useCached != null && gtfsBundle.useCached == null)
                     gtfsBundle.useCached = useCached;
-                GtfsMutableRelationalDao dao = new GtfsRelationalDaoImpl();
+
+
+                org.onebusaway2.gtfs.services.GtfsDao dao = mapDao(loadBundle(gtfsBundle));
+
                 GtfsContext context = GtfsLibrary.createContext(gtfsBundle.getFeedId(), dao, service);
                 GTFSPatternHopFactory hf = new GTFSPatternHopFactory(context);
+
                 hf.setStopContext(stopContext);
                 hf.setFareServiceFactory(_fareServiceFactory);
                 hf.setMaxStopToShapeSnapDistance(gtfsBundle.getMaxStopToShapeSnapDistance());
 
-                loadBundle(gtfsBundle, graph, dao);
 
                 CalendarServiceDataFactoryImpl csfactory = new CalendarServiceDataFactoryImpl();
                 csfactory.setGtfsDao(dao);
-                CalendarServiceData data = csfactory.createData();
-                service.addData(data, dao);
+                org.onebusaway2.gtfs.model.calendar.CalendarServiceData data = csfactory.createData();
+
+                service.addData(data, context.getDao());
 
                 hf.subwayAccessTime = gtfsBundle.subwayAccessTime;
                 hf.maxInterlineDistance = gtfsBundle.maxInterlineDistance;
@@ -137,9 +142,8 @@ public class GtfsModule implements GraphBuilderModule {
         }
 
         // We need to save the calendar service data so we can use it later
-        CalendarServiceData data = service.getData();
-        graph.putService(CalendarServiceData.class, data);
-        graph.updateTransitFeedValidity(data);
+        graph.putService(org.onebusaway2.gtfs.model.calendar.CalendarServiceData.class, service.getData());
+        graph.updateTransitFeedValidity(service.getData());
 
         graph.hasTransit = true;
         graph.calculateTransitCenter();
@@ -150,10 +154,10 @@ public class GtfsModule implements GraphBuilderModule {
      * Private Methods
      ****/
 
-    private void loadBundle(GtfsBundle gtfsBundle, Graph graph, GtfsMutableRelationalDao dao)
+    private GtfsMutableRelationalDao loadBundle(GtfsBundle gtfsBundle)
             throws IOException {
 
-        StoreImpl store = new StoreImpl(dao);
+        StoreImpl store = new StoreImpl(new GtfsRelationalDaoImpl());
         store.open();
         LOG.info("reading {}", gtfsBundle.toString());
 
@@ -228,7 +232,7 @@ public class GtfsModule implements GraphBuilderModule {
         }
 
         store.close();
-
+        return store.dao;
     }
 
     /**

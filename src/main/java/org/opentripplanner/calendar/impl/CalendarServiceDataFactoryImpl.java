@@ -26,18 +26,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 
-import org.onebusaway.gtfs.impl.calendar.CalendarServiceImpl;
-import org.onebusaway.gtfs.impl.calendar.UnknownAgencyTimezoneException;
-import org.onebusaway.gtfs.model.Agency;
-import org.onebusaway.gtfs.model.AgencyAndId;
-import org.onebusaway.gtfs.model.ServiceCalendar;
-import org.onebusaway.gtfs.model.ServiceCalendarDate;
-import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
-import org.onebusaway.gtfs.model.calendar.LocalizedServiceId;
-import org.onebusaway.gtfs.model.calendar.ServiceDate;
-import org.onebusaway.gtfs.services.GtfsRelationalDao;
-import org.onebusaway.gtfs.services.calendar.CalendarService;
-import org.onebusaway.gtfs.services.calendar.CalendarServiceDataFactory;
+import org.onebusaway2.gtfs.impl.calendar.CalendarServiceImpl;
+import org.onebusaway2.gtfs.impl.calendar.UnknownAgencyTimezoneException;
+import org.onebusaway2.gtfs.model.Agency;
+import org.onebusaway2.gtfs.model.AgencyAndId;
+import org.onebusaway2.gtfs.model.ServiceCalendar;
+import org.onebusaway2.gtfs.model.ServiceCalendarDate;
+import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
+import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.onebusaway2.gtfs.services.GtfsDao;
+import org.onebusaway2.gtfs.services.calendar.CalendarService;
+import org.onebusaway2.gtfs.services.calendar.CalendarServiceDataFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,16 +49,15 @@ import org.slf4j.LoggerFactory;
  * 
  * @author bdferris
  */
-public class CalendarServiceDataFactoryImpl implements
-    CalendarServiceDataFactory {
+public class CalendarServiceDataFactoryImpl implements CalendarServiceDataFactory {
 
   private final Logger _log = LoggerFactory.getLogger(CalendarServiceDataFactoryImpl.class);
 
-  private GtfsRelationalDao _dao;
+  private GtfsDao _dao;
 
   private int _excludeFutureServiceDatesInDays;
 
-  public static CalendarService createService(GtfsRelationalDao dao) {
+  public static CalendarService createService(GtfsDao dao) {
     CalendarServiceDataFactoryImpl factory = new CalendarServiceDataFactoryImpl(
         dao);
     return new CalendarServiceImpl(factory.createData());
@@ -69,11 +67,11 @@ public class CalendarServiceDataFactoryImpl implements
 
   }
 
-  public CalendarServiceDataFactoryImpl(GtfsRelationalDao dao) {
+  public CalendarServiceDataFactoryImpl(GtfsDao dao) {
     _dao = dao;
   }
 
-  public void setGtfsDao(GtfsRelationalDao dao) {
+  public void setGtfsDao(GtfsDao dao) {
     _dao = dao;
   }
 

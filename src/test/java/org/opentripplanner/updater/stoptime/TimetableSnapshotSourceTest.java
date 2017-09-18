@@ -29,10 +29,11 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.onebusaway.gtfs.model.*;
-import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
-import org.onebusaway.gtfs.model.calendar.ServiceDate;
-import org.onebusaway.gtfs.services.GtfsRelationalDao;
+import org.onebusaway2.gtfs.impl.calendar.CalendarServiceDataFactoryImpl;
+import org.onebusaway2.gtfs.model.*;
+import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
+import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.onebusaway2.gtfs.services.GtfsDao;
 import org.opentripplanner.ConstantsForTests;
 import org.opentripplanner.gtfs.GtfsContext;
 import org.opentripplanner.gtfs.GtfsLibrary;
@@ -53,7 +54,6 @@ import com.google.transit.realtime.GtfsRealtime.TripDescriptor;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeEvent;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate;
-import org.opentripplanner.updater.GtfsRealtimeFuzzyTripMatcher;
 
 public class TimetableSnapshotSourceTest {
 
@@ -70,32 +70,32 @@ public class TimetableSnapshotSourceTest {
     public static void setUpClass() throws Exception {
         context = GtfsLibrary.readGtfs(new File(ConstantsForTests.FAKE_GTFS));
 
-        GtfsRelationalDao dao = context.getDao();
+        GtfsDao dao = context.getDao();
 
         feedId = context.getFeedId().getId();
 
-        for (ShapePoint shapePoint : dao.getAllEntitiesForType(ShapePoint.class)) {
+        for (ShapePoint shapePoint : dao.getAllShapePoints()) {
             shapePoint.getShapeId().setAgencyId(feedId);
         }
-        for (Route route : dao.getAllEntitiesForType(Route.class)) {
+        for (Route route : dao.getAllRoutes()) {
             route.getId().setAgencyId(feedId);
         }
-        for (Stop stop : dao.getAllEntitiesForType(Stop.class)) {
+        for (Stop stop : dao.getAllStops()) {
             stop.getId().setAgencyId(feedId);
         }
-        for (Trip trip : dao.getAllEntitiesForType(Trip.class)) {
+        for (Trip trip : dao.getAllTrips()) {
             trip.getId().setAgencyId(feedId);
         }
-        for (ServiceCalendar serviceCalendar : dao.getAllEntitiesForType(ServiceCalendar.class)) {
+        for (ServiceCalendar serviceCalendar : dao.getAllCalendars()) {
             serviceCalendar.getServiceId().setAgencyId(feedId);
         }
-        for (ServiceCalendarDate serviceCalendarDate : dao.getAllEntitiesForType(ServiceCalendarDate.class)) {
+        for (ServiceCalendarDate serviceCalendarDate : dao.getAllCalendarDates()) {
             serviceCalendarDate.getServiceId().setAgencyId(feedId);
         }
-        for (FareAttribute fareAttribute : dao.getAllEntitiesForType(FareAttribute.class)) {
+        for (FareAttribute fareAttribute : dao.getAllFareAttributes()) {
             fareAttribute.getId().setAgencyId(feedId);
         }
-        for (Pathway pathway : dao.getAllEntitiesForType(Pathway.class)) {
+        for (Pathway pathway : dao.getAllPathways()) {
             pathway.getId().setAgencyId(feedId);
         }
 
@@ -117,8 +117,10 @@ public class TimetableSnapshotSourceTest {
 
     @Before
     public void setUp() {
-        graph.putService(CalendarServiceData.class,
-                GtfsLibrary.createCalendarServiceData(context.getDao()));
+        graph.putService(
+                CalendarServiceData.class,
+                CalendarServiceDataFactoryImpl.createCalendarServiceData(context.getDao())
+        );
         updater = new TimetableSnapshotSource(graph);
     }
 
