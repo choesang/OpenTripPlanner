@@ -10,7 +10,12 @@ import graphql.GraphQL;
 import graphql.schema.GraphQLSchema;
 import org.apache.lucene.util.PriorityQueue;
 import org.joda.time.LocalDate;
-import org.onebusaway.gtfs.model.*;
+import org.onebusaway.gtfs.model.Agency;
+import org.onebusaway.gtfs.model.AgencyAndId;
+import org.onebusaway.gtfs.model.FeedInfo;
+import org.onebusaway.gtfs.model.Route;
+import org.onebusaway.gtfs.model.Stop;
+import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 import org.opentripplanner.common.LuceneIndex;
@@ -57,7 +62,18 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileAttribute;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -83,6 +99,7 @@ public class GraphIndex {
     // TODO: consistently key on model object or id string
     public final Map<String, Vertex> vertexForId = Maps.newHashMap();
     public final Map<String, Map<String, Agency>> agenciesForFeedId = Maps.newHashMap();
+    public final Map<String, FeedInfo> feedInfoForId = Maps.newHashMap();
     public final Map<AgencyAndId, Stop> stopForId = Maps.newHashMap();
     public final Map<AgencyAndId, Stop> stationForId = Maps.newHashMap();
     public final Map<AgencyAndId, Trip> tripForId = Maps.newHashMap();
@@ -132,6 +149,7 @@ public class GraphIndex {
                 agencyForId.put(agency.getId(), agency);
                 this.agenciesForFeedId.put(feedId, agencyForId);
             }
+            this.feedInfoForId.put(feedId, graph.getFeedInfo(feedId));
         }
 
         Collection<Edge> edges = graph.getEdges();
@@ -468,8 +486,8 @@ public class GraphIndex {
             return stop.getId().getAgencyId() + ";" + stop.getId().getId() + ";" + pattern.code;
         }
 
-        public List<TripTimeShort> getStoptimes(GraphIndex index, long startTime, int timeRange, int numberOfDepartures) {
-            return index.stopTimesForPattern(stop, pattern, startTime, timeRange, numberOfDepartures);
+        public List<TripTimeShort> getStoptimes(GraphIndex index, long startTime, int timeRange, int numberOfDepartures, boolean omitNonPickups) {
+            return index.stopTimesForPattern(stop, pattern, startTime, timeRange, numberOfDepartures, omitNonPickups);
         }
 
         public static DepartureRow fromId(GraphIndex index, String id) {
@@ -663,8 +681,8 @@ public class GraphIndex {
      * Fetch upcoming vehicle departures from a stop.
      * Fetches two departures for each pattern during the next 24 hours as default
      */
-    public Collection<StopTimesInPattern> stopTimesForStop(Stop stop) {
-        return stopTimesForStop(stop, System.currentTimeMillis()/1000, 24 * 60 * 60, 2);
+    public Collection<StopTimesInPattern> stopTimesForStop(Stop stop, boolean omitNonPickups) {
+        return stopTimesForStop(stop, System.currentTimeMillis()/1000, 24 * 60 * 60, 2, omitNonPickups);
     }
 
     /**
@@ -678,17 +696,18 @@ public class GraphIndex {
      * @param startTime Start time for the search. Seconds from UNIX epoch
      * @param timeRange Searches forward for timeRange seconds from startTime
      * @param numberOfDepartures Number of departures to fetch per pattern
+     * @param omitNonPickups If true, do not include vehicles that will not pick up passengers.
      * @return
      */
-    public List<StopTimesInPattern> stopTimesForStop(final Stop stop, final long startTime, final int timeRange, final int numberOfDepartures) {
-   
+    public List<StopTimesInPattern> stopTimesForStop(final Stop stop, final long startTime, final int timeRange, final int numberOfDepartures, final boolean omitNonPickups) {
+
         final List<StopTimesInPattern> ret = new ArrayList<>();
 
         for (final TripPattern pattern : patternsForStop.get(stop)) {
-            
-            final List<TripTimeShort> stopTimesForStop = stopTimesForPattern(stop, pattern, startTime, timeRange, numberOfDepartures);
 
-            
+            final List<TripTimeShort> stopTimesForStop = stopTimesForPattern(stop, pattern, startTime, timeRange, numberOfDepartures, omitNonPickups);
+
+
             if (stopTimesForStop.size() >0) {
                 final StopTimesInPattern stopTimes = new StopTimesInPattern(pattern);
                 stopTimes.times.addAll(stopTimesForStop);
@@ -697,7 +716,7 @@ public class GraphIndex {
         }
         return ret;
     }
-    
+
     /**
      * Fetch next n upcoming vehicle departures for a stop of pattern. It goes
      * though the previous, current and next service date. It uses a priority
@@ -719,9 +738,9 @@ public class GraphIndex {
      * @return
      */
     public List<TripTimeShort> stopTimesForPattern(final Stop stop, final TripPattern pattern, long startTime, final int timeRange,
-            int numberOfDepartures) {
+            int numberOfDepartures, boolean omitNonPickups) {
 
-        if (pattern == null) { 
+        if (pattern == null) {
             return Collections.emptyList();
         }
 
@@ -730,7 +749,7 @@ public class GraphIndex {
         }
 
         final PriorityQueue<TripTimeShort> ret = new PriorityQueue<TripTimeShort>(numberOfDepartures) {
-            
+
             @Override
             protected boolean lessThan(final TripTimeShort t1, final TripTimeShort t2) {
                 return (t1.serviceDay + t1.realtimeDeparture) > (t2.serviceDay
@@ -765,6 +784,7 @@ public class GraphIndex {
             // loop through all stops of pattern
             for (final Stop currStop : pattern.stopPattern.stops) {
                 if (currStop.equals(stop)) {
+                    if(omitNonPickups && pattern.stopPattern.pickups[stopIndex] == pattern.stopPattern.PICKDROP_NONE) continue;
                     for (final TripTimes triptimes : tt.tripTimes) {
                         if (!sd.serviceRunning(triptimes.serviceCode))
                             continue;
@@ -800,11 +820,11 @@ public class GraphIndex {
         while(ret.size()>0) {
             result.add(0, ret.pop());
         }
-        
-        return result; 
+
+        return result;
     }
-  
-    
+
+
     /**
      * Get a list of all trips that pass through a stop during a single ServiceDate. Useful when creating complete stop
      * timetables for a single day.
@@ -813,7 +833,7 @@ public class GraphIndex {
      * @param serviceDate Return all departures for the specified date
      * @return
      */
-    public List<StopTimesInPattern> getStopTimesForStop(Stop stop, ServiceDate serviceDate) {
+    public List<StopTimesInPattern> getStopTimesForStop(Stop stop, ServiceDate serviceDate, boolean omitNonPickups) {
         List<StopTimesInPattern> ret = new ArrayList<>();
         TimetableSnapshot snapshot = null;
         if (graph.timetableSnapshotSource != null) {
@@ -832,6 +852,7 @@ public class GraphIndex {
             int sidx = 0;
             for (Stop currStop : pattern.stopPattern.stops) {
                 if (currStop.equals(stop)) {
+                    if(omitNonPickups && pattern.stopPattern.pickups[sidx] == pattern.stopPattern.PICKDROP_NONE) continue;
                     for (TripTimes t : tt.tripTimes) {
                         if (!sd.serviceRunning(t.serviceCode)) continue;
                         stopTimes.times.add(new TripTimeShort(t, sidx, stop, sd));
@@ -949,6 +970,8 @@ public class GraphIndex {
                 cluster = stopClusterForId.get(ps);
             } else {
                 cluster = new StopCluster(ps, stop.getName());
+                Stop parent = graph.parentStopById.get(new AgencyAndId(stop.getId().getAgencyId(), ps));
+                cluster.setCoordinates(parent.getLat(), parent.getLon());
                 stopClusterForId.put(ps, cluster);
             }
             cluster.children.add(stop);
