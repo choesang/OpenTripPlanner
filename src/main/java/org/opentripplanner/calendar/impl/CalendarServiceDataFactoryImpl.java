@@ -21,22 +21,30 @@ import org.opentripplanner.model.Agency;
 import org.opentripplanner.model.AgencyAndId;
 import org.opentripplanner.model.ServiceCalendar;
 import org.opentripplanner.model.ServiceCalendarDate;
+import org.opentripplanner.model.Trip;
 import org.opentripplanner.model.calendar.CalendarServiceData;
 import org.opentripplanner.model.calendar.LocalizedServiceId;
 import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.model.OtpTransitDao;
 import org.opentripplanner.model.CalendarService;
+import org.opentripplanner.model.impl.MultipleCalendarsForServiceIdException;
+import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+
+import static java.util.stream.Collectors.groupingBy;
 
 /**
  * We perform initial date calculations in the timezone of the host jvm, which
@@ -51,18 +59,24 @@ public class CalendarServiceDataFactoryImpl {
 
     private static final Logger LOG = LoggerFactory.getLogger(CalendarServiceDataFactoryImpl.class);
 
-    private final OtpTransitDao dao;
+    private final List<Agency> agencies;
+    private final Map<AgencyAndId, List<ServiceCalendarDate>> calendarDatesByServiceId;
+    private final Map<AgencyAndId, List<ServiceCalendar>> calendarsByServiceId;
+    private final Map<AgencyAndId, List<String>> tripAgencyIdsByServiceId;
+    private final Set<AgencyAndId> serviceIds;
 
-    public static CalendarService createCalendarService(OtpTransitDao dao) {
-        return new CalendarServiceImpl(createCalendarServiceData(dao));
+    public static CalendarService createCalendarService(OtpTransitDaoBuilder transitBuilder) {
+        return new CalendarServiceImpl(createCalendarServiceData(transitBuilder));
     }
 
-    public static CalendarServiceData createCalendarServiceData(OtpTransitDao dao) {
-        return new CalendarServiceDataFactoryImpl(dao).createData();
+    public static CalendarServiceData createCalendarServiceData(OtpTransitDaoBuilder transitBuilder) {
+        return new CalendarServiceDataFactoryImpl(transitBuilder).createData();
     }
 
-    public static CalendarServiceData createCalendarSrvDataWithoutDatesForLocalizedSrvId(OtpTransitDao dao) {
-        return (new CalendarServiceDataFactoryImpl(dao) {
+    public static CalendarServiceData createCalendarSrvDataWithoutDatesForLocalizedSrvId(
+            OtpTransitDaoBuilder transitBuilder
+    ) {
+        return (new CalendarServiceDataFactoryImpl(transitBuilder) {
             @Override void addDatesForLocalizedServiceId(
                     AgencyAndId serviceId, List<ServiceDate> serviceDates, CalendarServiceData data
             ) {
@@ -71,8 +85,17 @@ public class CalendarServiceDataFactoryImpl {
         }).createData();
     }
 
-    private CalendarServiceDataFactoryImpl(OtpTransitDao dao) {
-        this.dao = dao;
+    private CalendarServiceDataFactoryImpl(OtpTransitDaoBuilder transitBuilder) {
+        agencies = transitBuilder.getAgencies();
+        calendarDatesByServiceId = transitBuilder.getCalendarDates()
+                .stream()
+                .collect(groupingBy(ServiceCalendarDate::getServiceId));
+        calendarsByServiceId = transitBuilder.getCalendars()
+                .stream()
+                .collect(groupingBy(ServiceCalendar::getServiceId));
+        serviceIds = merge(calendarDatesByServiceId.keySet(), calendarsByServiceId.keySet());
+
+        tripAgencyIdsByServiceId = createTripAgencyIdByServiceIdMap(transitBuilder.getTrips().values());
     }
 
     CalendarServiceData createData() {
@@ -80,8 +103,6 @@ public class CalendarServiceDataFactoryImpl {
         CalendarServiceData data = new CalendarServiceData();
 
         setTimeZonesForAgencies(data);
-
-        List<AgencyAndId> serviceIds = dao.getAllServiceIds();
 
         int index = 0;
 
@@ -111,8 +132,15 @@ public class CalendarServiceDataFactoryImpl {
     }
 
     void addDatesForLocalizedServiceId (
-            AgencyAndId serviceId, List<ServiceDate> serviceDates, CalendarServiceData data) {
-        List<String> tripAgencyIds = dao.getTripAgencyIdsReferencingServiceId(serviceId);
+            AgencyAndId serviceId, List<ServiceDate> serviceDates, CalendarServiceData data
+    ) {
+        List<String> tripAgencyIds = tripAgencyIdsByServiceId.get(serviceId);
+
+        if(tripAgencyIds == null) {
+            LOG.warn("There is no trip with service id '{}'. No index for Localized service dates can be created.", serviceId);
+            return;
+        }
+
         Set<TimeZone> timeZones = new HashSet<>();
         for (String tripAgencyId : tripAgencyIds) {
             TimeZone timeZone = data.getTimeZoneForAgencyId(tripAgencyId);
@@ -133,19 +161,34 @@ public class CalendarServiceDataFactoryImpl {
     private Set<ServiceDate> getServiceDatesForServiceId(AgencyAndId serviceId,
             TimeZone serviceIdTimeZone) {
         Set<ServiceDate> activeDates = new HashSet<>();
-        ServiceCalendar c = dao.getCalendarForServiceId(serviceId);
+        ServiceCalendar c = findCalendarForServiceId(serviceId);
 
         if (c != null) {
             addDatesFromCalendar(c, serviceIdTimeZone, activeDates);
         }
-        for (ServiceCalendarDate cd : dao.getCalendarDatesForServiceId(serviceId)) {
-            addAndRemoveDatesFromCalendarDate(cd, activeDates);
+        List<ServiceCalendarDate> dates = calendarDatesByServiceId.get(serviceId);
+        if(dates != null) {
+            for (ServiceCalendarDate cd : dates) {
+                addAndRemoveDatesFromCalendarDate(cd, activeDates);
+            }
         }
         return activeDates;
     }
 
+    private ServiceCalendar findCalendarForServiceId(AgencyAndId serviceId) {
+        List<ServiceCalendar> calendars = calendarsByServiceId.get(serviceId);
+
+        if(calendars == null || calendars.isEmpty()) {
+            return null;
+        }
+        if(calendars.size() == 1) {
+            return calendars.get(0);
+        }
+        throw new MultipleCalendarsForServiceIdException(serviceId);
+    }
+
     private void setTimeZonesForAgencies(CalendarServiceData data) {
-        for (Agency agency : dao.getAllAgencies()) {
+        for (Agency agency : agencies) {
             TimeZone timeZone = TimeZone.getTimeZone(agency.getTimezone());
             if (timeZone.getID().equals("GMT") && !agency.getTimezone().toUpperCase()
                     .equals("GMT")) {
@@ -234,5 +277,34 @@ public class CalendarServiceDataFactoryImpl {
         Calendar c = serviceDate.getAsCalendar(timeZone);
         c.add(Calendar.HOUR_OF_DAY, 12);
         return c.getTime();
+    }
+
+    static Map<AgencyAndId, List<String>> createTripAgencyIdByServiceIdMap(Collection<Trip> trips) {
+        Map<AgencyAndId, Set<String>> agencyIdsByServiceIds = new HashMap<>();
+
+        for (Trip trip : trips) {
+            AgencyAndId tripId = trip.getId();
+            String tripAgencyId = tripId.getAgencyId();
+            AgencyAndId tripServiceId = trip.getServiceId();
+            Set<String> agencyIds = agencyIdsByServiceIds.computeIfAbsent(tripServiceId, k -> new HashSet<>());
+            agencyIds.add(tripAgencyId);
+        }
+
+        Map<AgencyAndId, List<String>> map = new HashMap<>();
+
+        for (Map.Entry<AgencyAndId, Set<String>> entry : agencyIdsByServiceIds.entrySet()) {
+            AgencyAndId tripServiceId = entry.getKey();
+            List<String> agencyIds = new ArrayList<>(entry.getValue());
+            Collections.sort(agencyIds);
+            map.put(tripServiceId, agencyIds);
+        }
+        return map;
+    }
+
+    static <T> Set<T> merge(Collection<T> set1, Collection<T> set2) {
+        Set<T> newSet = new HashSet<>();
+        newSet.addAll(set1);
+        newSet.addAll(set2);
+        return newSet;
     }
 }

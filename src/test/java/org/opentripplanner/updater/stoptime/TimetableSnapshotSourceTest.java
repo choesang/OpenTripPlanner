@@ -20,8 +20,8 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.opentripplanner.calendar.impl.CalendarServiceDataFactoryImpl.createCalendarServiceData;
+import static org.opentripplanner.gtfs.GtfsContextBuilder.contextBuilder;
 
-import java.io.File;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -41,10 +41,10 @@ import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.Trip;
 import org.opentripplanner.model.calendar.CalendarServiceData;
 import org.opentripplanner.model.calendar.ServiceDate;
-import org.opentripplanner.model.OtpTransitDao;
 import org.opentripplanner.ConstantsForTests;
 import org.opentripplanner.gtfs.GtfsContext;
-import org.opentripplanner.gtfs.GtfsLibrary;
+import org.opentripplanner.gtfs.GtfsContextBuilder;
+import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.opentripplanner.routing.edgetype.Timetable;
 import org.opentripplanner.routing.edgetype.TimetableSnapshot;
 import org.opentripplanner.routing.edgetype.TransitBoardAlight;
@@ -76,36 +76,43 @@ public class TimetableSnapshotSourceTest {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        context = GtfsLibrary.readGtfs(new File(ConstantsForTests.FAKE_GTFS));
+        GtfsContextBuilder contextBuilder = contextBuilder(ConstantsForTests.FAKE_GTFS)
+                .withGraphBuilderAnnotationsAndDeduplicator(graph);
 
-        OtpTransitDao dao = context.getDao();
+        context = contextBuilder
+                .turnOffRepairStopTimesAndTripPatternsGeneration()
+                .build();
+
+        OtpTransitDaoBuilder builder = context.getTransitBuilder();
 
         feedId = context.getFeedId().getId();
 
-        for (ShapePoint shapePoint : dao.getAllShapePoints()) {
+        for (ShapePoint shapePoint : builder.getShapePoints()) {
             shapePoint.getShapeId().setAgencyId(feedId);
         }
-        for (Route route : dao.getAllRoutes()) {
+        for (Route route : builder.getRoutes().values()) {
             route.getId().setAgencyId(feedId);
         }
-        for (Stop stop : dao.getAllStops()) {
+        for (Stop stop : builder.getStops().values()) {
             stop.getId().setAgencyId(feedId);
         }
-        for (Trip trip : dao.getAllTrips()) {
+        for (Trip trip : builder.getTrips().values()) {
             trip.getId().setAgencyId(feedId);
         }
-        for (ServiceCalendar serviceCalendar : dao.getAllCalendars()) {
+        for (ServiceCalendar serviceCalendar : builder.getCalendars()) {
             serviceCalendar.getServiceId().setAgencyId(feedId);
         }
-        for (ServiceCalendarDate serviceCalendarDate : dao.getAllCalendarDates()) {
+        for (ServiceCalendarDate serviceCalendarDate : builder.getCalendarDates()) {
             serviceCalendarDate.getServiceId().setAgencyId(feedId);
         }
-        for (FareAttribute fareAttribute : dao.getAllFareAttributes()) {
+        for (FareAttribute fareAttribute : builder.getFareAttributes()) {
             fareAttribute.getId().setAgencyId(feedId);
         }
-        for (Pathway pathway : dao.getAllPathways()) {
+        for (Pathway pathway : builder.getPathways()) {
             pathway.getId().setAgencyId(feedId);
         }
+
+        contextBuilder.repairStopTimesAndGenerateTripPatterns();
 
         GTFSPatternHopFactory factory = new GTFSPatternHopFactory(context);
         factory.run(graph);
@@ -127,7 +134,7 @@ public class TimetableSnapshotSourceTest {
     public void setUp() {
         graph.putService(
                 CalendarServiceData.class,
-                createCalendarServiceData(context.getDao())
+                createCalendarServiceData(context.getTransitBuilder())
         );
         updater = new TimetableSnapshotSource(graph);
     }
