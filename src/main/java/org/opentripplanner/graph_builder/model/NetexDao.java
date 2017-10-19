@@ -1,41 +1,67 @@
 package org.opentripplanner.graph_builder.model;
 
-import org.rutebanken.netex.model.*;
+import org.rutebanken.netex.model.Authority;
+import org.rutebanken.netex.model.DayType;
+import org.rutebanken.netex.model.DayTypeAssignment;
+import org.rutebanken.netex.model.JourneyPattern;
+import org.rutebanken.netex.model.Line;
+import org.rutebanken.netex.model.Notice;
+import org.rutebanken.netex.model.NoticeAssignment;
+import org.rutebanken.netex.model.OperatingPeriod;
+import org.rutebanken.netex.model.Operator;
+import org.rutebanken.netex.model.Quay;
+import org.rutebanken.netex.model.Route;
+import org.rutebanken.netex.model.ServiceJourney;
+import org.rutebanken.netex.model.ServiceJourneyInterchange;
+import org.rutebanken.netex.model.StopPlace;
 
 import java.util.*;
 
 public class NetexDao {
 
     private final Map<String, StopPlace> stopPlaceMap = new HashMap<>();
-    private Map<String, StopPlace> multimodalStopPlaceById = new HashMap<>();
-    private Map<String, Quay> quayMap = new HashMap<>();
-    private Map<String, String> stopPointStopPlaceMap = new HashMap<>();
-    private Map<String, String> stopPointQuayMap = new HashMap<>();
-    private Map<String, JourneyPattern> journeyPatternsById = new HashMap<>();
-    private Map<String, Route> routeById = new HashMap<>();
-    private Map<String, Line> lineById = new HashMap<>();
-    private Map<String, List<ServiceJourney>> serviceJourneyById = new HashMap<>();
-    private Map<String, DayType> dayTypeById = new HashMap<>();
-    private Map<String, List<DayTypeAssignment>> dayTypeAssignment = new HashMap<>();
-    private Map<String, Boolean> dayTypeAvailable = new HashMap<>();
-    private Map<String, OperatingPeriod> operatingPeriodById = new HashMap<>();
-    private Map<String, Operator> operators = new HashMap<>();
-    private Map<String, Authority> authorities = new HashMap<>();
-    private Map<String, String> authoritiesByGroupOfLinesId = new HashMap<>();
-    private Map<String, String> authoritiesByNetworkId = new HashMap<>();
-    private Map<String, String> serviceIds = new HashMap<>();
-    private Map<String, StopPlace> parentStopPlaceById = new HashMap<>();
-    private Map<String, Notice> noticeMap = new HashMap<>();
-    private Map<String, NoticeAssignment> noticeAssignmentMap = new HashMap<>();
-    private Map<String, ServiceJourneyInterchange> interchanges = new HashMap<>();
-    private Map<String, StopPlace> stopsById = new HashMap<>();
-    private Map<String, Quay> quayById = new HashMap<>();
-    private Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
+    private final Map<String, StopPlace> parentStopPlaceById = new HashMap<>();
+    private final Map<String, StopPlace> multimodalStopPlaceById = new HashMap<>();
+    private final Map<String, Quay> quayMap = new HashMap<>();
+    private final Map<String, String> stopPointStopPlaceMap = new HashMap<>();
+    private final Map<String, String> stopPointQuayMap = new HashMap<>();
+    private final Map<String, JourneyPattern> journeyPatternsById = new HashMap<>();
+    private final Map<String, Route> routeById = new HashMap<>();
+    private final Map<String, Line> lineById = new HashMap<>();
+    private final Map<String, List<ServiceJourney>> serviceJourneyById = new HashMap<>();
+    private final Map<String, DayType> dayTypeById = new HashMap<>();
+    private final Map<String, List<DayTypeAssignment>> dayTypeAssignment = new HashMap<>();
+    private final Map<String, Boolean> dayTypeAvailable = new HashMap<>();
+    private final Map<String, OperatingPeriod> operatingPeriodById = new HashMap<>();
+    private final Map<String, Operator> operators = new HashMap<>();
+    private final Map<String, Authority> authorities = new HashMap<>();
+    private final Map<String, String> authoritiesByGroupOfLinesId = new HashMap<>();
+    private final Map<String, String> authoritiesByNetworkId = new HashMap<>();
+    private final Map<String, String> serviceIds = new HashMap<>();
+    private final Map<String, Notice> noticeMap = new HashMap<>();
+    private final Map<String, NoticeAssignment> noticeAssignmentMap = new HashMap<>();
+    private final Map<String, ServiceJourneyInterchange> interchanges = new HashMap<>();
+    private final Map<String, StopPlace> stopsById = new HashMap<>();
+    private final Map<String, Quay> quayById = new HashMap<>();
+    private final Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
     private String timeZone;
+
+    public Map<String, Notice> getNoticeMap() {
+        return noticeMap;
+    }
+
+    public Map<String, NoticeAssignment> getNoticeAssignmentMap() {
+        return noticeAssignmentMap;
+    }
+
+    public Map<String, StopPlace> getParentStopPlaceById() {
+        return parentStopPlaceById;
+    }
 
     public Map<String, StopPlace> getStopPlaceMap() {
         return stopPlaceMap;
     }
+
     public Map<String, Quay> getQuayMap() {
         return quayMap;
     }
@@ -58,18 +84,6 @@ public class NetexDao {
 
     public Map<String, ServiceJourneyInterchange> getInterchanges() {
         return interchanges;
-    }
-
-    public Map<String, Notice> getNoticeMap() {
-        return noticeMap;
-    }
-
-    public Map<String, NoticeAssignment> getNoticeAssignmentMap() {
-        return noticeAssignmentMap;
-    }
-
-    public Map<String, StopPlace> getParentStopPlaceById() {
-        return parentStopPlaceById;
     }
 
     public Map<String, Boolean> getDayTypeAvailable() {
@@ -142,9 +156,5 @@ public class NetexDao {
 
     public Map<String, StopPlace> getMultimodalStopPlaceById() {
         return multimodalStopPlaceById;
-    }
-
-    public void setMultimodalStopPlaceById(Map<String, StopPlace> multimodalStopPlaceById) {
-        this.multimodalStopPlaceById = multimodalStopPlaceById;
     }
 }

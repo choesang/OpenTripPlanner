@@ -48,6 +48,8 @@ import org.opentripplanner.graph_builder.annotation.NonStationParentStation;
 import org.opentripplanner.graph_builder.module.GtfsFeedId;
 import org.opentripplanner.gtfs.GtfsContext;
 import org.opentripplanner.gtfs.GtfsLibrary;
+import org.opentripplanner.model.Notice;
+import org.opentripplanner.model.NoticeAssignment;
 import org.opentripplanner.routing.core.StopTransfer;
 import org.opentripplanner.routing.core.TransferTable;
 import org.opentripplanner.routing.core.TraverseMode;
@@ -93,7 +95,7 @@ import java.util.Map;
 // or do all the steps within one loop over trips. It would be clearer if there were multiple loops over the trips.
 
 /** A wrapper class for Trips that allows them to be sorted. */
-class InterliningTrip  implements Comparable<InterliningTrip> {
+class InterliningTrip implements Comparable<InterliningTrip> {
     public Trip trip;
     public StopTime firstStopTime;
     public StopTime lastStopTime;
@@ -109,12 +111,10 @@ class InterliningTrip  implements Comparable<InterliningTrip> {
     public int getPatternIndex() {
         return tripPattern.getTripIndex(trip);
     }
-    
     @Override
     public int compareTo(InterliningTrip o) {
         return firstStopTime.getArrivalTime() - o.firstStopTime.getArrivalTime();
     }
-    
     @Override
     public boolean equals(Object o) {
         if (o instanceof InterliningTrip) {
@@ -122,11 +122,10 @@ class InterliningTrip  implements Comparable<InterliningTrip> {
         }
         return false;
     }
-    
 }
 
-/** 
- * This compound key object is used when grouping interlining trips together by (serviceId, blockId). 
+/**
+ * This compound key object is used when grouping interlining trips together by (serviceId, blockId).
  */
 class BlockIdAndServiceId {
     public String blockId;
@@ -136,7 +135,7 @@ class BlockIdAndServiceId {
         this.blockId = trip.getBlockId();
         this.serviceId = trip.getServiceId();
     }
-    
+
     public boolean equals(Object o) {
         if (o instanceof BlockIdAndServiceId) {
             BlockIdAndServiceId other = ((BlockIdAndServiceId) o);
@@ -172,8 +171,8 @@ class IndexedLineSegment {
         double lat1Radians = c1.y * FastMath.PI / 180;
         double lat2Radians = c2.y * FastMath.PI / 180;
         double y = FastMath.sin(deltaLon) * FastMath.cos(lat2Radians);
-        double x = FastMath.cos(lat1Radians)*FastMath.sin(lat2Radians) -
-                FastMath.sin(lat1Radians)*FastMath.cos(lat2Radians)*FastMath.cos(deltaLon);
+        double x = FastMath.cos(lat1Radians) * FastMath.sin(lat2Radians)
+                - FastMath.sin(lat1Radians) * FastMath.cos(lat2Radians) * FastMath.cos(deltaLon);
         return FastMath.atan2(y, x);
     }
 
@@ -181,9 +180,8 @@ class IndexedLineSegment {
         double distanceFromStart = SphericalDistanceLibrary.fastDistance(start, coord);
         double bearingToCoord = bearing(start, coord);
         double bearingToEnd = bearing(start, end);
-        return FastMath.asin(FastMath.sin(distanceFromStart / RADIUS)
-            * FastMath.sin(bearingToCoord - bearingToEnd))
-            * RADIUS;
+        return FastMath.asin(FastMath.sin(distanceFromStart / RADIUS) * FastMath
+                .sin(bearingToCoord - bearingToEnd)) * RADIUS;
     }
 
     double distance(Coordinate coord) {
@@ -305,10 +303,9 @@ public class GTFSPatternHopFactory {
         this._dao = null;
     }
 
-    public GTFSPatternHopFactory(
-            GtfsFeedId feedId, OtpTransitDao dao, FareServiceFactory fareServiceFactory,
-            double maxStopToShapeSnapDistance, int subwayAccessTime, int maxInterlineDistance
-    ) {
+    public GTFSPatternHopFactory(GtfsFeedId feedId, OtpTransitDao dao,
+            FareServiceFactory fareServiceFactory, double maxStopToShapeSnapDistance,
+            int subwayAccessTime, int maxInterlineDistance) {
 
         this._feedId = feedId;
         this._dao = dao;
@@ -421,7 +418,18 @@ public class GTFSPatternHopFactory {
         for (TripPattern tableTripPattern : tripPatterns) {
             tableTripPattern.scheduledTimetable.finish();
         }
-        
+
+        graph.setNoticeMap(_dao.getNoticeById());
+        for (NoticeAssignment noticeAssignment : _dao.getNoticeAssignmentById().values()) {
+            Notice notice = _dao.getNoticeById().get(noticeAssignment.getNoticeId());
+            if (graph.getNoticeAssignmentMap().containsKey(noticeAssignment.getElementId())) {
+                graph.getNoticeAssignmentMap().get(noticeAssignment.getElementId()).add(notice);
+            } else {
+                graph.getNoticeAssignmentMap()
+                        .put(noticeAssignment.getElementId(), new ArrayList(Arrays.asList(notice)));
+            }
+        }
+
         clearCachedData(); // eh?
         graph.putService(FareService.class, fareServiceFactory.makeFareService());
         graph.putService(OnBoardDepartService.class, new OnBoardDepartServiceImpl());
@@ -992,11 +1000,8 @@ public class GTFSPatternHopFactory {
             i++;
         }
 
-        /*
-         * If we don't have distances here, we can't calculate them ourselves because we can't
-         * assume the units will match
-         */
-
+        // If we don't have distances here, we can't calculate them ourselves because we can't
+        // assume the units will match
         if (!hasAllDistances) {
             distances = null;
         }

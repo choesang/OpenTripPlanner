@@ -6,13 +6,11 @@ import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.rutebanken.netex.model.JourneyPattern;
 import org.rutebanken.netex.model.Line;
+import org.rutebanken.netex.model.Notice;
 import org.rutebanken.netex.model.Operator;
-import org.rutebanken.netex.model.ServiceJourneyPattern;
 import org.rutebanken.netex.model.StopPlace;
 
 import java.util.Collection;
-
-import static org.opentripplanner.netex.mapping.CalendarMapper.mapToCalendarDates;
 
 public class NetexMapper {
 
@@ -27,6 +25,10 @@ public class NetexMapper {
     TripPatternMapper tripPatternMapper = new TripPatternMapper();
 
     CalendarMapper calendarMapper = new CalendarMapper();
+
+    NoticeMapper noticeMapper = new NoticeMapper();
+
+    NoticeAssignmentMapper noticeAssignmentMapper = new NoticeAssignmentMapper();
 
     public NetexMapper(OtpTransitDaoBuilder transitBuilder) {
         this.transitBuilder = transitBuilder;
@@ -62,7 +64,24 @@ public class NetexMapper {
         }
 
         for (String serviceId : netexDao.getServiceIds().values()) {
-            transitBuilder.getCalendarDates().addAll(mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
+            transitBuilder.getCalendarDates().addAll(calendarMapper
+                    .mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
+        }
+
+        for (Notice notice : netexDao.getNoticeMap().values()) {
+            if (notice != null) {
+                org.opentripplanner.model.Notice otpNotice = noticeMapper.mapNotice(notice);
+                transitBuilder.getNoticesById().add(otpNotice);
+            }
+        }
+
+        for (org.rutebanken.netex.model.NoticeAssignment noticeAssignment : netexDao
+                .getNoticeAssignmentMap().values()) {
+            if (noticeAssignment != null) {
+                org.opentripplanner.model.NoticeAssignment otpNoticeAssignment = noticeAssignmentMapper
+                        .mapNoticeAssignment(noticeAssignment);
+                transitBuilder.getNoticeAssignmentsById().add(otpNoticeAssignment);
+            }
         }
 
         return transitBuilder;
