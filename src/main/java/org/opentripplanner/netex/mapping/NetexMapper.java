@@ -3,6 +3,7 @@ package org.opentripplanner.netex.mapping;
 import org.opentripplanner.graph_builder.model.NetexDao;
 import org.opentripplanner.model.Route;
 import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.Transfer;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.rutebanken.netex.model.JourneyPattern;
 import org.rutebanken.netex.model.Line;
@@ -11,6 +12,9 @@ import org.rutebanken.netex.model.Operator;
 import org.rutebanken.netex.model.StopPlace;
 
 import java.util.Collection;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
 public class NetexMapper {
 
@@ -29,6 +33,8 @@ public class NetexMapper {
     NoticeMapper noticeMapper = new NoticeMapper();
 
     NoticeAssignmentMapper noticeAssignmentMapper = new NoticeAssignmentMapper();
+
+    TransferMapper transferMapper = new TransferMapper();
 
     public NetexMapper(OtpTransitDaoBuilder transitBuilder) {
         this.transitBuilder = transitBuilder;
@@ -84,6 +90,14 @@ public class NetexMapper {
             }
         }
 
+        for (org.rutebanken.netex.model.ServiceJourneyInterchange interchange : netexDao.getInterchanges().values()) {
+            if (interchange != null) {
+                Transfer transfer = transferMapper.mapTransfer(interchange, transitBuilder, netexDao);
+                if (transfer != null) {
+                    transitBuilder.getTransfers().add(transfer);
+                }
+            }
+        }
         return transitBuilder;
     }
 }

@@ -135,10 +135,14 @@ class OtpTransitDaoImpl implements OtpTransitDao {
     }
 
     @Override
-    public Map<AgencyAndId, Notice> getNoticeById() { return noticeById; }
+    public Map<AgencyAndId, Notice> getNoticeById() {
+        return noticeById;
+    }
 
     @Override
-    public Map<AgencyAndId, NoticeAssignment> getNoticeAssignmentById() { return noticeAssignmentById; }
+    public Map<AgencyAndId, NoticeAssignment> getNoticeAssignmentById() {
+        return noticeAssignmentById;
+    }
 
     @Override
     public Collection<Pathway> getAllPathways() {
