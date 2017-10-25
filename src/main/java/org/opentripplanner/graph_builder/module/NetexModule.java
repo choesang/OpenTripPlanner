@@ -75,6 +75,9 @@ public class NetexModule implements GraphBuilderModule {
                 if (netexBundle.linkStopsToParentStations) {
                     hf.linkStopsToParentStations(graph);
                 }
+                if (netexBundle.linkMultiModalStopsToParentStations) {
+                    hf.linkMultiModalStops(graph);
+                }
                 if (netexBundle.parentStationTransfers) {
                     hf.createParentStationTransfers();
                 }
@@ -221,22 +224,6 @@ public class NetexModule implements GraphBuilderModule {
                             }
                         }
                     }
-                }
-            }
-
-            // Load parent stops from NetexStopDao into NetexDao
-
-            for (StopPlace stopPlace : netexDao.getAllStopPlaces()) {
-                if (!netexDao.getParentStopPlaceById().containsKey(stopPlace.getId())) {
-                    netexDao.getParentStopPlaceById().put(stopPlace.getId(), stopPlace);
-                }
-            }
-
-            // Load multimodal stops from NetexStopDao into NetexDao
-
-            for (StopPlace stopPlace : netexDao.getMultimodalStopPlaceById().values()) {
-                if (!netexDao.getMultimodalStopPlaceById().containsKey(stopPlace.getId())) {
-                    netexDao.getMultimodalStopPlaceById().put(stopPlace.getId(), stopPlace);
                 }
             }
 

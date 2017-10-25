@@ -46,14 +46,6 @@ public class NetexDao {
     private final Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
     private String timeZone;
 
-    public Map<String, Notice> getNoticeMap() {
-        return noticeMap;
-    }
-
-    public Map<String, NoticeAssignment> getNoticeAssignmentMap() {
-        return noticeAssignmentMap;
-    }
-
     public Map<String, StopPlace> getParentStopPlaceById() {
         return parentStopPlaceById;
     }
@@ -152,6 +144,14 @@ public class NetexDao {
 
     public Map<String, String> getStopPointQuayMap() {
         return stopPointQuayMap;
+    }
+
+    public Map<String, Notice> getNoticeMap() {
+        return noticeMap;
+    }
+
+    public Map<String, NoticeAssignment> getNoticeAssignmentMap() {
+        return noticeAssignmentMap;
     }
 
     public Map<String, StopPlace> getMultimodalStopPlaceById() {

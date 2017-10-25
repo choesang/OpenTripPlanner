@@ -13,8 +13,7 @@ import org.rutebanken.netex.model.StopPlace;
 
 import java.util.Collection;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
+import static org.opentripplanner.netex.mapping.CalendarMapper.mapToCalendarDates;
 
 public class NetexMapper {
 
@@ -54,9 +53,17 @@ public class NetexMapper {
             }
         }
 
+        for (StopPlace stopPlace : netexDao.getMultimodalStopPlaceById().values()) {
+            if (stopPlace != null) {
+                Stop stop = stopMapper.mapMultiModalStop(stopPlace);
+                transitBuilder.getMultiModalStops().add(stop);
+            }
+        }
+
         for (StopPlace stopPlace : netexDao.getStopPlaceMap().values()) {
             if (stopPlace != null) {
-                Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlace, netexDao.getParentStopPlaceById());
+                //Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlace, netexDao.getParentStopPlaceById());
+                Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlace, transitBuilder);
                 for (Stop stop : stops) {
                     transitBuilder.getStops().add(stop);
                 }
@@ -70,8 +77,8 @@ public class NetexMapper {
         }
 
         for (String serviceId : netexDao.getServiceIds().values()) {
-            transitBuilder.getCalendarDates().addAll(calendarMapper
-                    .mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
+            transitBuilder.getCalendarDates().addAll(
+                    mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
         }
 
         for (Notice notice : netexDao.getNoticeMap().values()) {

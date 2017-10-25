@@ -64,6 +64,10 @@ public class OtpTransitDaoBuilder {
 
     private final EntityMap<AgencyAndId, NoticeAssignment> noticeAssignmentsById = new EntityMap<>();
 
+    private final EntityMap<AgencyAndId, Stop> multiModalStops = new EntityMap<>();
+
+    private final ListMultimap<Stop, Stop> stationsByMultiModalStop = ArrayListMultimap.create();
+
     private final List<Pathway> pathways = new ArrayList<>();
 
     private final EntityMap<AgencyAndId, Route> routesById = new EntityMap<>();
@@ -114,6 +118,22 @@ public class OtpTransitDaoBuilder {
         return frequencies;
     }
 
+    public EntityMap<AgencyAndId, Notice> getNoticesById() {
+        return noticesById;
+    }
+
+    public EntityMap<AgencyAndId, NoticeAssignment> getNoticeAssignmentsById() {
+        return noticeAssignmentsById;
+    }
+
+    public EntityMap<AgencyAndId, Stop> getMultiModalStops() {
+        return multiModalStops;
+    }
+
+    public ListMultimap<Stop, Stop> getStationsByMultiModalStop() {
+        return stationsByMultiModalStop;
+    }
+
     public List<Pathway> getPathways() {
         return pathways;
     }
@@ -146,14 +166,6 @@ public class OtpTransitDaoBuilder {
         return tripPatterns;
     }
 
-
-    public EntityMap<AgencyAndId, Notice> getNoticesById() {
-        return noticesById;
-    }
-
-    public EntityMap<AgencyAndId, NoticeAssignment> getNoticeAssignmentsById() {
-        return noticeAssignmentsById;
-    }
 
     /**
      * Find all serviceIds in both CalendarServices and CalendarServiceDates.

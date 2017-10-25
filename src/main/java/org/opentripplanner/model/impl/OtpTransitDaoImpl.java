@@ -39,9 +39,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static java.util.Collections.unmodifiableMap;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.reducing;
 
 /**
  * A in-memory implementation of OtpTransitDao. It's super fast for most
@@ -76,6 +78,8 @@ class OtpTransitDaoImpl implements OtpTransitDao {
 
     private final Map<AgencyAndId, List<ShapePoint>> shapePointsByShapeId;
 
+    private final Map<Stop, Collection<Stop>> stationsByMultiModalStop;
+
     private final Map<AgencyAndId, Stop> stopsById;
 
     private final Map<Trip, List<StopTime>> stopTimesByTrip;
@@ -102,11 +106,12 @@ class OtpTransitDaoImpl implements OtpTransitDao {
         this.fareAttributes = nullSafeUnmodifiableList(builder.getFareAttributes());
         this.fareRules = nullSafeUnmodifiableList(builder.getFareRules());
         this.feedInfos = nullSafeUnmodifiableList(builder.getFeedInfos());
-        this.noticeById = unmodifiableMap(builder.getNoticesById().asMap());
         this.noticeAssignmentById = unmodifiableMap(builder.getNoticeAssignmentsById().asMap());
+        this.noticeById = unmodifiableMap(builder.getNoticesById().asMap());
         this.pathways = nullSafeUnmodifiableList(builder.getPathways());
         this.serviceIds = nullSafeUnmodifiableList(builder.findAllServiceIds());
         this.shapePointsByShapeId = mapShapePoints(builder.getShapePoints());
+        this.stationsByMultiModalStop = new HashMap<>(builder.getStationsByMultiModalStop().asMap());
         this.stopsById = unmodifiableMap(builder.getStops().asMap());
         this.stopTimesByTrip = builder.getStopTimesSortedByTrip().asMap();
         this.transfers = nullSafeUnmodifiableList(builder.getTransfers());
@@ -135,13 +140,13 @@ class OtpTransitDaoImpl implements OtpTransitDao {
     }
 
     @Override
-    public Map<AgencyAndId, Notice> getNoticeById() {
-        return noticeById;
+    public Map<AgencyAndId, NoticeAssignment> getNoticeAssignmentById() {
+        return noticeAssignmentById;
     }
 
     @Override
-    public Map<AgencyAndId, NoticeAssignment> getNoticeAssignmentById() {
-        return noticeAssignmentById;
+    public Map<AgencyAndId, Notice> getNoticeById() {
+        return noticeById;
     }
 
     @Override
@@ -168,6 +173,11 @@ class OtpTransitDaoImpl implements OtpTransitDao {
     public List<Stop> getStopsForStation(Stop station) {
         ensureStopForStations();
         return nullSafeUnmodifiableList(stopsByStation.get(station));
+    }
+
+    @Override
+    public Iterable<Map.Entry<Stop, Collection<Stop>>> getStationsByMultiModalStop() {
+        return stationsByMultiModalStop.entrySet();
     }
 
     @Override

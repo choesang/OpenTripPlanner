@@ -32,6 +32,8 @@ public interface OtpTransitDao {
 
     Stop getStopForId(AgencyAndId id);
 
+    Iterable<Map.Entry<Stop, Collection<Stop>>> getStationsByMultiModalStop();
+
     List<Stop> getStopsForStation(Stop station);
 
     Collection<Stop> getAllStops();
