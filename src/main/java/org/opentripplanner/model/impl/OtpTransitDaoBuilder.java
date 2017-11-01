@@ -193,7 +193,6 @@ public class OtpTransitDaoBuilder {
         generateNoneExistingIds(fareRules);
         generateNoneExistingIds(feedInfos);
         generateNoneExistingIds(frequencies);
-        generateNoneExistingIds(stopTimesByTrip.values());
         generateNoneExistingIds(transfers);
     }
 

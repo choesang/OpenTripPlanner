@@ -62,7 +62,6 @@ public class NetexMapper {
 
         for (StopPlace stopPlace : netexDao.getStopPlaceMap().values()) {
             if (stopPlace != null) {
-                //Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlace, netexDao.getParentStopPlaceById());
                 Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlace, transitBuilder);
                 for (Stop stop : stops) {
                     transitBuilder.getStops().add(stop);
