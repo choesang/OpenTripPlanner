@@ -12,9 +12,7 @@ import org.opentripplanner.model.ServiceCalendarDate;
 import org.opentripplanner.model.StopTime;
 import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
-import org.opentripplanner.graph_builder.model.GtfsBundle;
 import org.opentripplanner.graph_builder.model.NetexBundle;
-import org.opentripplanner.graph_builder.module.GtfsModule;
 import org.opentripplanner.graph_builder.module.NetexModule;
 
 import java.io.File;

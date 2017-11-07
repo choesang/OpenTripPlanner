@@ -1,6 +1,7 @@
 package org.opentripplanner.netex.mapping;
 
 import org.opentripplanner.graph_builder.model.NetexDao;
+import org.opentripplanner.model.NoticeAssignment;
 import org.opentripplanner.model.Route;
 import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
@@ -11,6 +12,8 @@ import org.rutebanken.netex.model.Operator;
 import org.rutebanken.netex.model.StopPlace;
 
 import java.util.Collection;
+
+import static org.opentripplanner.netex.mapping.CalendarMapper.mapToCalendarDates;
 
 public class NetexMapper {
 
@@ -23,8 +26,6 @@ public class NetexMapper {
     StopMapper stopMapper = new StopMapper();
 
     TripPatternMapper tripPatternMapper = new TripPatternMapper();
-
-    CalendarMapper calendarMapper = new CalendarMapper();
 
     NoticeMapper noticeMapper = new NoticeMapper();
 
@@ -64,8 +65,8 @@ public class NetexMapper {
         }
 
         for (String serviceId : netexDao.getServiceIds().values()) {
-            transitBuilder.getCalendarDates().addAll(calendarMapper
-                    .mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
+            transitBuilder.getCalendarDates().addAll(
+                    mapToCalendarDates(AgencyAndIdFactory.getAgencyAndId(serviceId), netexDao));
         }
 
         for (Notice notice : netexDao.getNoticeMap().values()) {
@@ -78,9 +79,11 @@ public class NetexMapper {
         for (org.rutebanken.netex.model.NoticeAssignment noticeAssignment : netexDao
                 .getNoticeAssignmentMap().values()) {
             if (noticeAssignment != null) {
-                org.opentripplanner.model.NoticeAssignment otpNoticeAssignment = noticeAssignmentMapper
-                        .mapNoticeAssignment(noticeAssignment);
-                transitBuilder.getNoticeAssignmentsById().add(otpNoticeAssignment);
+                Collection<NoticeAssignment> otpNoticeAssignments = noticeAssignmentMapper
+                        .mapNoticeAssignment(noticeAssignment, netexDao);
+                for (org.opentripplanner.model.NoticeAssignment otpNoticeAssignment : otpNoticeAssignments) {
+                    transitBuilder.getNoticeAssignmentsById().add(otpNoticeAssignment);
+                }
             }
         }
 

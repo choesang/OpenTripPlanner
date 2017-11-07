@@ -141,7 +141,6 @@ public class TripTimes implements Serializable, Comparable<TripTimes>, Cloneable
         for (final StopTime st : stopTimes) {
             departures[s] = st.getDepartureTime() - timeShift;
             arrivals[s] = st.getArrivalTime() - timeShift;
-            stopTimeIds[s] = st.getId();
             sequences[s] = st.getStopSequence();
             timepoints.set(s, st.getTimepoint() == 1);
             s++;

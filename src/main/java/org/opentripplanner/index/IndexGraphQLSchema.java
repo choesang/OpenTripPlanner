@@ -717,6 +717,18 @@ public class IndexGraphQLSchema {
                 .dataFetcher(environment ->
                     ((TripPattern) environment.getSource()).semanticHashString(null))
                 .build())
+            .field(GraphQLFieldDefinition.newFieldDefinition()
+                    .name("notices")
+                    .type(new GraphQLList(noticeType))
+                    .argument(GraphQLArgument.newArgument()
+                            .name("gtfsId")
+                            .type(Scalars.GraphQLString)
+                            .build())
+                    .dataFetcher(environment -> {
+                        TripPattern tripPattern = (TripPattern) environment.getSource();
+                        return index.getNoticesForElement(tripPattern.id);
+                    })
+                    .build())
             .build();
 
 
@@ -806,18 +818,6 @@ public class IndexGraphQLSchema {
                     .distinct()
                     .collect(Collectors.toList()))
                 .build())
-            .field(GraphQLFieldDefinition.newFieldDefinition()
-                    .name("notices")
-                    .type(new GraphQLList(noticeType))
-                    .argument(GraphQLArgument.newArgument()
-                            .name("gtfsId")
-                            .type(Scalars.GraphQLString)
-                            .build())
-                    .dataFetcher(environment -> {
-                        Route route = (Route) environment.getSource();
-                        return index.getNoticesForElement(route.getId());
-                    })
-                    .build())
             .build();
 
         agencyType = GraphQLObjectType.newObject()
