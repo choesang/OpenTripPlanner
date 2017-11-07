@@ -1,6 +1,7 @@
 package org.opentripplanner.netex.mapping;
 
 import org.opentripplanner.graph_builder.model.NetexDao;
+import org.opentripplanner.model.NoticeAssignment;
 import org.opentripplanner.model.Route;
 import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.Transfer;
@@ -10,6 +11,8 @@ import org.rutebanken.netex.model.Line;
 import org.rutebanken.netex.model.Notice;
 import org.rutebanken.netex.model.Operator;
 import org.rutebanken.netex.model.StopPlace;
+
+import java.util.Collection;
 
 import java.util.Collection;
 
@@ -90,9 +93,9 @@ public class NetexMapper {
         for (org.rutebanken.netex.model.NoticeAssignment noticeAssignment : netexDao
                 .getNoticeAssignmentMap().values()) {
             if (noticeAssignment != null) {
-                org.opentripplanner.model.NoticeAssignment otpNoticeAssignment = noticeAssignmentMapper
-                        .mapNoticeAssignment(noticeAssignment);
-                transitBuilder.getNoticeAssignmentsById().add(otpNoticeAssignment);
+                Collection<NoticeAssignment> otpNoticeAssignments = noticeAssignmentMapper.mapNoticeAssignment(noticeAssignment, netexDao);
+                for (org.opentripplanner.model.NoticeAssignment otpNoticeAssignment : otpNoticeAssignments){
+                transitBuilder.getNoticeAssignmentsById().add( otpNoticeAssignment);}
             }
         }
 

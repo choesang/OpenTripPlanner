@@ -44,6 +44,7 @@ public class NetexDao {
     private final Map<String, StopPlace> stopsById = new HashMap<>();
     private final Map<String, Quay> quayById = new HashMap<>();
     private final Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
+    private Map<String, JourneyPattern> journeyPatternByStopPointId = new HashMap<>();
     private String timeZone;
 
     public Map<String, StopPlace> getParentStopPlaceById() {
@@ -56,6 +57,10 @@ public class NetexDao {
 
     public Map<String, Quay> getQuayMap() {
         return quayMap;
+    }
+
+    public Map<String, JourneyPattern> getJourneyPatternByStopPointId() {
+        return journeyPatternByStopPointId;
     }
 
     public Map<Quay, StopPlace> getStopPlaceByQuay() {
