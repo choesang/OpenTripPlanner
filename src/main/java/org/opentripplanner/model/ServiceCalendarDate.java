@@ -17,11 +17,16 @@ package org.opentripplanner.model;
 
 import org.opentripplanner.model.calendar.ServiceDate;
 
+import java.util.Objects;
+
 /**
- * @author bdferris
+ * Note: this class has a natural ordering that is inconsistent with equals witch
+ * uses the <em>id</em> only.
  *
+ * @author bdferris
  */
-public final class ServiceCalendarDate extends IdentityBean<Integer> {
+public final class ServiceCalendarDate extends IdentityBean<Integer>
+        implements Comparable<ServiceCalendarDate> {
 
     private static final long serialVersionUID = 1L;
 
@@ -73,5 +78,22 @@ public final class ServiceCalendarDate extends IdentityBean<Integer> {
     public String toString() {
         return "<CalendarDate serviceId=" + this.serviceId + " date=" + this.date + " exception="
                 + this.exceptionType + ">";
+    }
+
+    /**
+     * Note: this class has a natural ordering that is inconsistent with equals witch
+     * uses the <em>id</em> only.
+     */
+    @Override
+    public int compareTo(ServiceCalendarDate other) {
+        int c = serviceId.compareTo(other.serviceId);
+        if(c == 0) {
+            c = date.compareTo(other.date);
+        }
+        return c;
+    }
+
+    public String naturalId() {
+        return serviceId.toString() + "_" + date.toString();
     }
 }
