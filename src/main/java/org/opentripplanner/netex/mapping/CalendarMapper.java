@@ -71,7 +71,7 @@ public class CalendarMapper {
                         }
                     }
 
-                    for (LocalDateTime date = fromDate; date.isBefore(toDate); date = date.plusDays(1)) {
+                    for (LocalDateTime date = fromDate; date.isBefore(toDate.plusDays(1)); date = date.plusDays(1)) {
                         ServiceCalendarDate serviceCalendarDate = mapServiceCalendarDate(date, serviceId, 1);
 
                         if (daysOfWeek.contains(DayOfWeekEnumeration.EVERYDAY)) {
@@ -151,7 +151,14 @@ public class CalendarMapper {
 
         Set<String> removeServiceCodeDates = serviceCalendarDatesRemove.stream().map(ServiceCalendarDate::naturalId).collect(Collectors.toSet());
 
-        return serviceCalendarDates.stream().filter(it -> !removeServiceCodeDates.contains(it.naturalId())).collect(Collectors.toList());
+        Collection<ServiceCalendarDate> returnDates = serviceCalendarDates.stream()
+                .filter(it -> !removeServiceCodeDates.contains(it.naturalId())).collect(Collectors.toList());
+
+        if (returnDates.size() == 0) {
+            LOG.warn("ServiceCode " + serviceId + " does not contain any serviceDates");
+        }
+
+        return returnDates;
     }
 
     private static ServiceCalendarDate mapServiceCalendarDate(LocalDateTime date, AgencyAndId serviceId, Integer exceptionType) {
