@@ -1,5 +1,6 @@
 package org.opentripplanner.netex;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import org.joda.time.DateTime;
 import org.joda.time.MutableDateTime;
 import org.junit.Assert;
@@ -14,8 +15,11 @@ import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.opentripplanner.graph_builder.model.NetexBundle;
 import org.opentripplanner.graph_builder.module.NetexModule;
+import org.opentripplanner.standalone.GraphBuilderParameters;
+import org.opentripplanner.standalone.OTPMain;
 
 import java.io.File;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,6 +34,7 @@ public class MappingTest {
 
     static String gtfsFile = "src/test/resources/netex_mapping_test/gtfs_minimal_fileset/gtfs_minimal.zip";
     static File netexFile = new File("src/test/resources/netex_mapping_test/netex_minimal_fileset/netex_minimal.zip");
+    static File netexConfigFile = new File("src/test/resources/netex_mapping_test/build-config.json");
 
     private static OtpTransitDaoBuilder otpBuilderFromGtfs;
     private static OtpTransitDaoBuilder otpBuilderFromNetex;
@@ -39,8 +44,8 @@ public class MappingTest {
         if (gtfsFile == null || netexFile == null) {
             Assert.fail();
         }
-
-        NetexBundle netexBundle = new NetexBundle(netexFile);
+        JsonNode buildConfig = OTPMain.loadJson(netexConfigFile);
+        NetexBundle netexBundle = new NetexBundle(netexFile, new GraphBuilderParameters(buildConfig));
         NetexModule netexModule = new NetexModule(new ArrayList<NetexBundle>() {
             {
                 add(netexBundle);
