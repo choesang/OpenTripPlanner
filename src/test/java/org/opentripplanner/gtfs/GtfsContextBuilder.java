@@ -56,7 +56,7 @@ public class GtfsContextBuilder {
 
     private boolean repairStopTimesAndGenerateTripPatterns = true;
 
-    private boolean setAgencyToFeedIdForAllElements = true;
+    private boolean setAgencyToFeedIdForAllElements = false;
 
     public static GtfsContextBuilder contextBuilder(String path) throws IOException {
         return contextBuilder(null, path);
@@ -106,6 +106,11 @@ public class GtfsContextBuilder {
      */
     public GtfsContextBuilder turnOffRepairStopTimesAndTripPatternsGeneration() {
         this.repairStopTimesAndGenerateTripPatterns = false;
+        return this;
+    }
+
+    public GtfsContextBuilder turnOnsetAgencyToFeedIdForAllElements() {
+        this.setAgencyToFeedIdForAllElements = true;
         return this;
     }
 
