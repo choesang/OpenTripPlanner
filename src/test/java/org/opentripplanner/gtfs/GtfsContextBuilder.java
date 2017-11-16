@@ -19,6 +19,14 @@ import org.opentripplanner.graph_builder.annotation.GraphBuilderAnnotation;
 import org.opentripplanner.graph_builder.module.GtfsFeedId;
 import org.opentripplanner.graph_builder.module.GtfsModule;
 import org.opentripplanner.gtfs.mapping.OtpTransitDaoMapper;
+import org.opentripplanner.model.FareAttribute;
+import org.opentripplanner.model.Pathway;
+import org.opentripplanner.model.Route;
+import org.opentripplanner.model.ServiceCalendar;
+import org.opentripplanner.model.ServiceCalendarDate;
+import org.opentripplanner.model.ShapePoint;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.Trip;
 import org.opentripplanner.model.impl.OtpTransitDaoBuilder;
 import org.opentripplanner.routing.graph.AddBuilderAnnotation;
 import org.opentripplanner.routing.graph.Graph;
@@ -47,6 +55,8 @@ public class GtfsContextBuilder {
     private Deduplicator deduplicator;
 
     private boolean repairStopTimesAndGenerateTripPatterns = true;
+
+    private boolean setAgencyToFeedIdForAllElements = true;
 
     public static GtfsContextBuilder contextBuilder(String path) throws IOException {
         return contextBuilder(null, path);
@@ -99,6 +109,38 @@ public class GtfsContextBuilder {
         return this;
     }
 
+    public void setAgencyToFeedIdForAllElements() {
+
+        for (ShapePoint shapePoint : transitBuilder.getShapePoints()) {
+            shapePoint.getShapeId().setAgencyId(this.feedId.getId());
+        }
+        for (Route route : transitBuilder.getRoutes().values()) {
+            route.getId().setAgencyId(this.feedId.getId());
+        }
+        for (Stop stop : transitBuilder.getStops().values()) {
+            stop.getId().setAgencyId(this.feedId.getId());
+        }
+
+        for (Trip trip : transitBuilder.getTrips().values()) {
+            trip.getId().setAgencyId(this.feedId.getId());
+        }
+
+        for (ServiceCalendar serviceCalendar : transitBuilder.getCalendars()) {
+            serviceCalendar.getServiceId().setAgencyId(this.feedId.getId());
+        }
+        for (ServiceCalendarDate serviceCalendarDate : transitBuilder.getCalendarDates()) {
+            serviceCalendarDate.getServiceId().setAgencyId(this.feedId.getId());
+        }
+
+        for (FareAttribute fareAttribute : transitBuilder.getFareAttributes()) {
+            fareAttribute.getId().setAgencyId(this.feedId.getId());
+        }
+
+        for (Pathway pathway : transitBuilder.getPathways()) {
+            pathway.getId().setAgencyId(this.feedId.getId());
+        }
+    }
+
     /**
      * This method will:
      * <ol>
@@ -110,6 +152,9 @@ public class GtfsContextBuilder {
     public GtfsContext build() {
         if(repairStopTimesAndGenerateTripPatterns) {
             repairStopTimesAndGenerateTripPatterns();
+        }
+        if (setAgencyToFeedIdForAllElements) {
+            setAgencyToFeedIdForAllElements();
         }
         return new GtfsContextImpl(feedId, transitBuilder);
     }
