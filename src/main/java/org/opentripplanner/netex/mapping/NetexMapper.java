@@ -63,8 +63,6 @@ public class NetexMapper {
         for (JourneyPattern journeyPattern : netexDao.getJourneyPatternsById().values()) {
             if (journeyPattern != null) {
                 tripPatternMapper.mapTripPattern(journeyPattern, transitBuilder, netexDao);
-            } else {
-                int i = 0;
             }
         }
 
