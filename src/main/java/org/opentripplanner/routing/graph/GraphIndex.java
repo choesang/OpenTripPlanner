@@ -62,18 +62,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.attribute.FileAttribute;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -782,8 +771,9 @@ public class GraphIndex {
             int stopIndex = 0;
 
             // loop through all stops of pattern
-            for (final Stop currStop : pattern.stopPattern.stops) {
+            for (final Stop currStop : tt.pattern.stopPattern.stops) {
                 if (currStop.equals(stop)) {
+
                     if(omitNonPickups && pattern.stopPattern.pickups[stopIndex] == pattern.stopPattern.PICKDROP_NONE) continue;
                     for (final TripTimes triptimes : tt.tripTimes) {
                         if (!sd.serviceRunning(triptimes.serviceCode))
@@ -818,7 +808,10 @@ public class GraphIndex {
 
         final List<TripTimeShort> result = new ArrayList<>();
         while(ret.size()>0) {
-            result.add(0, ret.pop());
+            TripTimeShort tripTimeShort = ret.pop();
+            if (!result.contains(tripTimeShort)) {
+                result.add(0, tripTimeShort);
+            }
         }
 
         return result;

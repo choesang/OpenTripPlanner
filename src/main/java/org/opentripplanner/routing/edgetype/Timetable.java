@@ -98,6 +98,12 @@ public class Timetable implements Serializable {
         this.serviceDate = null;
     }
 
+    /** Construct an empty Timetable with a specified serviceDate. */
+    public Timetable(TripPattern pattern, ServiceDate serviceDate) {
+        this.pattern = pattern;
+        this.serviceDate = serviceDate;
+    }
+
     /**
      * Copy constructor: create an un-indexed Timetable with the same TripTimes as the specified timetable.
      */
@@ -162,6 +168,7 @@ public class Timetable implements Serializable {
         // We could invert this and skip some service days based on schedule overlap as in RRRR.
         for (TripTimes tt : tripTimes) {
             if (tt.isCanceled()) continue;
+            if ((tt.getNumStops() <= stopIndex)) continue;
             if ( ! serviceDay.serviceRunning(tt.serviceCode)) continue; // TODO merge into call on next line
             if ( ! tt.tripAcceptable(s0, stopIndex)) continue;
             int adjustedTime = adjustTimeForTransfer(s0, currentStop, tt.trip, boarding, serviceDay, time);
@@ -274,24 +281,32 @@ public class Timetable implements Serializable {
         // Concatenate raw TripTimes and those referenced from FrequencyEntries
         List<TripTimes> allTripTimes = Lists.newArrayList(tripTimes);
         for (FrequencyEntry freq : frequencyEntries) allTripTimes.add(freq.tripTimes);
-        for (TripTimes tt : allTripTimes) {
-            for (int h = 0; h < nHops; ++h) {
-                int dt = tt.getDwellTime(h);
-                if (minDwellTimes[h] > dt) {
-                    minDwellTimes[h] = dt;
-                }
-                int rt = tt.getRunningTime(h);
-                if (minRunningTimes[h] > rt) {
-                    minRunningTimes[h] = rt;
-                }
-            }
-        }
-        /* Find the time range over which this timetable is active. Allows departure search optimizations. */
+
         minTime = Integer.MAX_VALUE;
         maxTime = Integer.MIN_VALUE;
+
+        for (TripTimes tt : allTripTimes) {
+            if (tt.getNumStops() == nStops) {
+                for (int h = 0; h < nHops; ++h) {
+                    int dt = tt.getDwellTime(h);
+                    if (minDwellTimes[h] > dt) {
+                        minDwellTimes[h] = dt;
+                    }
+                    int rt = tt.getRunningTime(h);
+                    if (minRunningTimes[h] > rt) {
+                        minRunningTimes[h] = rt;
+                    }
+                }
+                minTime = Math.min(minTime, tt.getDepartureTime(0));
+                maxTime = Math.max(maxTime, tt.getArrivalTime(nStops - 1));
+            }
+        }
+
         for (TripTimes tt : tripTimes) {
-            minTime = Math.min(minTime, tt.getDepartureTime(0));
-            maxTime = Math.max(maxTime, tt.getArrivalTime(nStops - 1));
+            if (tt.getNumStops() == nStops) {
+                minTime = Math.min(minTime, tt.getDepartureTime(0));
+                maxTime = Math.max(maxTime, tt.getArrivalTime(nStops - 1));
+            }
         }
         // Slightly repetitive code.
         // Again it seems reasonable to have a shared interface between FrequencyEntries and normal TripTimes.
@@ -553,7 +568,8 @@ public class Timetable implements Serializable {
             LOG.trace("tripId {} found at index {} in timetable.", tripId, tripIndex);
         }
 
-        TripTimes oldTimes = new TripTimes(getTripTimes(tripIndex));
+        final TripTimes existingTripTimes = getTripTimes(tripIndex);
+        TripTimes oldTimes = new TripTimes(existingTripTimes);
 
         if (journey.isCancellation() != null && journey.isCancellation()) {
             oldTimes.cancel();
@@ -561,57 +577,53 @@ public class Timetable implements Serializable {
         }
 
         EstimatedVehicleJourney.EstimatedCalls journeyCalls = journey.getEstimatedCalls();
+        EstimatedVehicleJourney.RecordedCalls recordedCalls = journey.getRecordedCalls();
 
         if (journeyCalls == null) {
             LOG.error("Part of a TripUpdate object could not be applied successfully.");
             return null;
         }
 
-
         List<EstimatedCall> estimatedCalls = journeyCalls.getEstimatedCalls();
+
+        int numberOfRecordedCalls = (recordedCalls != null ? (recordedCalls.getRecordedCalls() != null ? recordedCalls.getRecordedCalls().size():0):0);
 
         boolean stopPatternChanged = false;
 
         //Get all scheduled stops with dropoff or pickup
-        List<Stop> stops = new ArrayList<>();
-        Stop[] allStops = pattern.stopPattern.stops;
-        for (int i = 0; i < allStops.length; i++) {
-            if (pattern.stopPattern.dropoffs[i] != PICKDROP_NONE |
-                    pattern.stopPattern.pickups[i] != PICKDROP_NONE) {
-                stops.add(allStops[i]);
-            } else {
-                stopPatternChanged = true;
-            }
-        }
+        Stop[] stops = pattern.stopPattern.stops;
 
         List<Stop> modifiedStops = new ArrayList<>();
-        for (Stop stop : stops) {
+        for (int i = 0; i < stops.length; i++) {
+            Stop stop = stops[i];
+
             boolean foundMatch = false;
+            if (i >= numberOfRecordedCalls) {
+                for (EstimatedCall estimatedCall : estimatedCalls) {
 
-            for (EstimatedCall estimatedCall : estimatedCalls) {
+                    //Current stop is being updated
+                    boolean stopsMatchById = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
 
-                //Current stop is being updated
-                boolean stopsMatchById = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
-
-                if (!stopsMatchById && stop.getParentStation() != null) {
-                    Stop alternativeStop = graph.index.stopForId.get(new AgencyAndId(stop.getId().getAgencyId(), estimatedCall.getStopPointRef().getValue()));
-                    if (alternativeStop != null && stop.getParentStation().equals(alternativeStop.getParentStation())) {
-                        stopsMatchById = true;
-                        stopPatternChanged = true;
-                        stop = alternativeStop;
+                    if (!stopsMatchById && stop.getParentStation() != null) {
+                        Stop alternativeStop = graph.index.stopForId.get(new AgencyAndId(stop.getId().getAgencyId(), estimatedCall.getStopPointRef().getValue()));
+                        if (alternativeStop != null && stop.getParentStation().equals(alternativeStop.getParentStation())) {
+                            stopsMatchById = true;
+                            stopPatternChanged = true;
+                            stop = alternativeStop;
+                        }
                     }
-                }
 
-                if (stopsMatchById) {
-                    foundMatch = true;
-                    boolean isCancelled = estimatedCall.isCancellation() != null && estimatedCall.isCancellation();
+                    if (stopsMatchById) {
+                        foundMatch = true;
+                        boolean isCancelled = estimatedCall.isCancellation() != null && estimatedCall.isCancellation();
 
-                    if (!isCancelled) {
                         modifiedStops.add(stop);
-                    } else {
-                        stopPatternChanged = true;
+
+                        if (isCancelled) {
+                            stopPatternChanged = true;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
             if (!foundMatch) {
@@ -622,6 +634,9 @@ public class Timetable implements Serializable {
         Trip trip = getTrip(tripId);
 
         List<StopTime> modifiedStopTimes = createModifiedStopTimes(oldTimes, journey, trip, graph.index);
+        if (modifiedStopTimes == null) {
+            return null;
+        }
         TripTimes newTimes = new TripTimes(trip, modifiedStopTimes, graph.deduplicator);
 
         //Populate missing data from existing TripTimes
@@ -630,24 +645,27 @@ public class Timetable implements Serializable {
         int callCounter = 0;
         ZonedDateTime departureDate = null;
         Set<EstimatedCall> alreadyVisited = new HashSet<>();
+
+        int departureFromPreviousStop = 0;
+        int lastArrivalDelay = 0;
+        int lastDepartureDelay = 0;
         for (Stop stop : modifiedStops) {
-
-
+            boolean foundMatch = false;
             for (EstimatedCall estimatedCall : estimatedCalls) {
                 if (alreadyVisited.contains(estimatedCall)) {
                     continue;
                 }
                 //Current stop is being updated
-                boolean stopsMatchById = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
+                foundMatch = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
 
-                if (!stopsMatchById && stop.getParentStation() != null) {
+                if (!foundMatch && stop.getParentStation() != null) {
                     Stop alternativeStop = graph.index.stopForId.get(new AgencyAndId(stop.getId().getAgencyId(), estimatedCall.getStopPointRef().getValue()));
                     if (alternativeStop != null && stop.getParentStation().equals(alternativeStop.getParentStation())) {
-                        stopsMatchById = true;
+                        foundMatch = true;
                     }
                 }
 
-                if (stopsMatchById) {
+                if (foundMatch) {
                     if (departureDate == null) {
                         departureDate = estimatedCall.getAimedDepartureTime();
                         if (departureDate == null) {
@@ -656,31 +674,75 @@ public class Timetable implements Serializable {
                     }
 
                     int arrivalTime = newTimes.getArrivalTime(callCounter);
+                    int realtimeArrivalTime = arrivalTime;
                     if (estimatedCall.getExpectedArrivalTime() != null) {
-                        arrivalTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedArrivalTime());
+                        realtimeArrivalTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedArrivalTime());
                     } else if (estimatedCall.getAimedArrivalTime() != null) {
-                        arrivalTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedArrivalTime());
+                        realtimeArrivalTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedArrivalTime());
                     }
-                    newTimes.updateArrivalTime(callCounter, arrivalTime);
+                    int arrivalDelay = realtimeArrivalTime - arrivalTime;
+                    newTimes.updateArrivalDelay(callCounter, arrivalDelay);
+                    lastArrivalDelay = arrivalDelay;
 
                     int departureTime = newTimes.getDepartureTime(callCounter);
+                    int realtimeDepartureTime = departureTime;
                     if (estimatedCall.getExpectedDepartureTime() != null) {
-                        departureTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedDepartureTime());
+                        realtimeDepartureTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedDepartureTime());
                     } else if (estimatedCall.getAimedDepartureTime() != null) {
-                        departureTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedDepartureTime());
+                        realtimeDepartureTime = calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedDepartureTime());
                     }
-                    newTimes.updateDepartureTime(callCounter, Math.max(departureTime, arrivalTime));
+                    if (realtimeDepartureTime < realtimeArrivalTime){
+                        realtimeDepartureTime = realtimeArrivalTime;
+                    }
+                    int departureDelay = realtimeDepartureTime - departureTime;
+
+                    newTimes.updateDepartureDelay(callCounter, departureDelay);
+                    lastDepartureDelay = departureDelay;
+                    departureFromPreviousStop = newTimes.getDepartureTime(callCounter);
 
                     alreadyVisited.add(estimatedCall);
                     break;
                 }
             }
+            if (!foundMatch) {
+
+                if (pattern.stopPattern.pickups[callCounter] == PICKDROP_NONE &&
+                        pattern.stopPattern.dropoffs[callCounter] == PICKDROP_NONE) {
+                    // When newTimes contains stops without pickup/dropoff - set both arrival/departure to previous stop's departure
+                    // This necessary to accommodate the case when delay is reduced/eliminated between to stops with pickup/dropoff, and
+                    // multiple non-pickup/dropoff stops are in between.
+                    newTimes.updateArrivalTime(callCounter, departureFromPreviousStop);
+                    newTimes.updateDepartureTime(callCounter, departureFromPreviousStop);
+                } else {
+
+                    int arrivalDelay = lastArrivalDelay;
+                    int departureDelay = lastDepartureDelay;
+
+                    if (lastArrivalDelay == 0 && lastDepartureDelay == 0) {
+                        //No match has been found yet (i.e. still in RecordedCalls) - keep existing delays
+                        arrivalDelay = existingTripTimes.getArrivalDelay(callCounter);
+                        departureDelay = existingTripTimes.getDepartureDelay(callCounter);
+                    }
+
+                    newTimes.updateArrivalDelay(callCounter, arrivalDelay);
+                    newTimes.updateDepartureDelay(callCounter, departureDelay);
+                }
+
+                departureFromPreviousStop = newTimes.getDepartureTime(callCounter);
+            }
             callCounter++;
         }
 
+        RealTimeState existingRealTimeState = existingTripTimes.getRealTimeState();
+
         if (stopPatternChanged) {
+            // This update modified stopPattern
             newTimes.setRealTimeState(RealTimeState.MODIFIED);
+        } else if (existingRealTimeState != RealTimeState.SCHEDULED) {
+            // StopPattern has already been modified/updated - keep previous state
+            newTimes.setRealTimeState(existingRealTimeState);
         } else {
+            // This is the first update, and StopPattern has not been changed
             newTimes.setRealTimeState(RealTimeState.UPDATED);
         }
 
@@ -694,7 +756,7 @@ public class Timetable implements Serializable {
             return null;
         }
 
-        if (newTimes.getNumStops() > oldTimes.getNumStops()) {
+        if (newTimes.getNumStops() != pattern.stopPattern.stops.length) {
             return null;
         }
 
@@ -730,7 +792,7 @@ public class Timetable implements Serializable {
         List<EstimatedCall> estimatedCalls = journeyCalls.getEstimatedCalls();
 
         //Get all scheduled stops
-        List<Stop> stops = getScheduledStops();
+        Stop[] stops = pattern.stopPattern.stops;
 
         List<Stop> modifiedStops = new ArrayList<>();
 
@@ -759,18 +821,6 @@ public class Timetable implements Serializable {
             }
         }
         return modifiedStops;
-    }
-
-    private List<Stop> getScheduledStops() {
-        List<Stop> stops = new ArrayList<>();
-
-        for (int i = 0; i < pattern.stopPattern.stops.length; i++) {
-            if (pattern.stopPattern.dropoffs[i] != PICKDROP_NONE |
-                    pattern.stopPattern.pickups[i] != PICKDROP_NONE) {
-                stops.add(pattern.stopPattern.stops[i]);
-            }
-        }
-        return stops;
     }
 
     /**
@@ -802,107 +852,112 @@ public class Timetable implements Serializable {
         List<EstimatedCall> estimatedCalls = journeyCalls.getEstimatedCalls();
 
         //Get all scheduled stops
-        List<Stop> stops = getScheduledStops();
+        Stop[] stops = pattern.stopPattern.stops;
 
         List<StopTime> modifiedStops = new ArrayList<>();
 
         ZonedDateTime departureDate = null;
-        int counter = (journey.getRecordedCalls() != null && journey.getRecordedCalls().getRecordedCalls() != null) ? journey.getRecordedCalls().getRecordedCalls().size():0;
+        int numberOfRecordedCalls = (journey.getRecordedCalls() != null && journey.getRecordedCalls().getRecordedCalls() != null) ? journey.getRecordedCalls().getRecordedCalls().size():0;
 
-        // Keep existing stop-times as-is
-        for (int i = 0; i < counter; i++) {
-            Stop stop = stops.get(i);
-
-            StopTime stopTime = new StopTime();
-            stopTime.setStop(stop);
-            stopTime.setTrip(trip);
-            stopTime.setStopSequence(i);
-
-            stopTime.setArrivalTime(oldTimes.getArrivalTime(i));
-            stopTime.setDepartureTime(oldTimes.getDepartureTime(i));
-            modifiedStops.add(stopTime);
+        if (estimatedCalls.size() + numberOfRecordedCalls > stops.length) {
+            return null;
         }
+
         // modify updated stop-times
-        for (; counter < stops.size(); counter++) {
-            Stop stop = stops.get(counter);
+        for (int i = 0; i < stops.length; i++) {
+            Stop stop = stops[i];
 
             final StopTime stopTime = new StopTime();
             stopTime.setStop(stop);
             stopTime.setTrip(trip);
-            stopTime.setStopSequence(counter);
+            stopTime.setStopSequence(i);
+            stopTime.setDropOffType(pattern.stopPattern.dropoffs[i]);
+            stopTime.setPickupType(pattern.stopPattern.pickups[i]);
 
             boolean foundMatch = false;
-            for (EstimatedCall estimatedCall : estimatedCalls) {
+            if (i >= numberOfRecordedCalls) {
+                for (EstimatedCall estimatedCall : estimatedCalls) {
 
-                if (departureDate == null) {
-                    departureDate = (estimatedCall.getAimedDepartureTime() != null ? estimatedCall.getAimedDepartureTime():estimatedCall.getAimedArrivalTime());
-                }
-
-                //Current stop is being updated
-                boolean stopsMatchById = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
-
-                if (!stopsMatchById && stop.getParentStation() != null) {
-                    Stop alternativeStop = graphIndex.stopForId.get(new AgencyAndId(stop.getId().getAgencyId(), estimatedCall.getStopPointRef().getValue()));
-                    if (alternativeStop != null && stop.getParentStation().equals(alternativeStop.getParentStation())) {
-                        stopsMatchById = true;
-                        stopTime.setStop(alternativeStop);
+                    if (departureDate == null) {
+                        departureDate = (estimatedCall.getAimedDepartureTime() != null ? estimatedCall.getAimedDepartureTime() : estimatedCall.getAimedArrivalTime());
                     }
 
-                }
+                    //Current stop is being updated
+                    boolean stopsMatchById = stop.getId().getId().equals(estimatedCall.getStopPointRef().getValue());
 
-                if (stopsMatchById) {
-                    foundMatch = true;
-                    if (estimatedCall.getAimedArrivalTime() != null) {
-                        stopTime.setArrivalTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedArrivalTime()));
-                    } else if (estimatedCall.getExpectedArrivalTime() != null) {
-                        stopTime.setArrivalTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedArrivalTime()));
-                    }
-                    if (estimatedCall.getAimedDepartureTime() != null) {
-                        stopTime.setDepartureTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedDepartureTime()));
-                    } else if (estimatedCall.getExpectedDepartureTime() != null) {
-                        stopTime.setDepartureTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedDepartureTime()));
-                    }
-                    if (estimatedCall.isCancellation() != null && estimatedCall.isCancellation()) {
-                        stopTime.setDropOffType(PICKDROP_NONE);
-                        stopTime.setPickupType(PICKDROP_NONE);
-                    } else {
+                    if (!stopsMatchById && stop.getParentStation() != null) {
+                        Stop alternativeStop = graphIndex.stopForId.get(new AgencyAndId(stop.getId().getAgencyId(), estimatedCall.getStopPointRef().getValue()));
+                        if (alternativeStop != null && stop.getParentStation().equals(alternativeStop.getParentStation())) {
+                            stopsMatchById = true;
+                            stopTime.setStop(alternativeStop);
+                        }
 
-                        if (estimatedCall.getArrivalBoardingActivity() != null) {
-                            if (estimatedCall.getArrivalBoardingActivity() == ArrivalBoardingActivityEnumeration.ALIGHTING) {
-                                stopTime.setPickupType(PICKDROP_SCHEDULED);
-                            } else if (estimatedCall.getArrivalBoardingActivity() == ArrivalBoardingActivityEnumeration.NO_ALIGHTING) {
-                                stopTime.setPickupType(PICKDROP_NONE);
+                    }
+
+                    if (stopsMatchById) {
+                        foundMatch = true;
+
+                        if (oldTimes.getRealTimeState() == RealTimeState.SCHEDULED) {
+                            // Used when CREATING a new pattern to prepare for realtime-updated data
+                            if (estimatedCall.getAimedArrivalTime() != null) {
+                                stopTime.setArrivalTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedArrivalTime()));
+                            }
+                            if (estimatedCall.getAimedDepartureTime() != null) {
+                                stopTime.setDepartureTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedDepartureTime()));
+                            }
+                        } else {
+                            // Used when UPDATING an existing pattern with realtime-updated data
+                            if (estimatedCall.getExpectedArrivalTime() != null) {
+                                stopTime.setArrivalTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedArrivalTime()));
+                            } else if (estimatedCall.getAimedArrivalTime() != null) {
+                                stopTime.setArrivalTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedArrivalTime()));
+                            }
+
+                            if (estimatedCall.getExpectedDepartureTime() != null) {
+                                stopTime.setDepartureTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getExpectedDepartureTime()));
+                            } else if (estimatedCall.getAimedDepartureTime() != null) {
+                                stopTime.setDepartureTime(calculateSecondsSinceMidnight(departureDate, estimatedCall.getAimedDepartureTime()));
                             }
                         }
-                        if (estimatedCall.getDepartureBoardingActivity() != null) {
-                            if (estimatedCall.getDepartureBoardingActivity() == DepartureBoardingActivityEnumeration.BOARDING) {
-                                stopTime.setDropOffType(PICKDROP_SCHEDULED);
-                            } else if (estimatedCall.getDepartureBoardingActivity() == DepartureBoardingActivityEnumeration.NO_BOARDING) {
-                                stopTime.setDropOffType(PICKDROP_NONE);
+
+                        if (estimatedCall.isCancellation() != null && estimatedCall.isCancellation()) {
+                            stopTime.setDropOffType(PICKDROP_NONE);
+                            stopTime.setPickupType(PICKDROP_NONE);
+                        } else {
+
+                            if (estimatedCall.getArrivalBoardingActivity() != null) {
+                                if (estimatedCall.getArrivalBoardingActivity() == ArrivalBoardingActivityEnumeration.ALIGHTING) {
+                                    stopTime.setDropOffType(PICKDROP_SCHEDULED);
+                                } else if (estimatedCall.getArrivalBoardingActivity() == ArrivalBoardingActivityEnumeration.NO_ALIGHTING) {
+                                    stopTime.setDropOffType(PICKDROP_NONE);
+                                }
+                            }
+                            if (estimatedCall.getDepartureBoardingActivity() != null) {
+                                if (estimatedCall.getDepartureBoardingActivity() == DepartureBoardingActivityEnumeration.BOARDING) {
+                                    stopTime.setPickupType(PICKDROP_SCHEDULED);
+                                } else if (estimatedCall.getDepartureBoardingActivity() == DepartureBoardingActivityEnumeration.NO_BOARDING) {
+                                    stopTime.setPickupType(PICKDROP_NONE);
+                                }
                             }
                         }
+                        if (stopTime.getArrivalTime() < 0 && stopTime.getDepartureTime() > 0) {
+                            stopTime.setArrivalTime(stopTime.getDepartureTime());
+                        }
+                        if (stopTime.getDepartureTime() < 0 && stopTime.getArrivalTime() > 0) {
+                            stopTime.setDepartureTime(stopTime.getArrivalTime());
+                        }
+
+                        stopTime.setTimepoint(1); //Exact time
+
+                        modifiedStops.add(stopTime);
+                        break;
                     }
-
-                    stopTime.setTimepoint(1); //Exact time
-
-                    modifiedStops.add(stopTime);
-                    break;
                 }
-            }
-
-            if (counter == 0) {
-                //Override first stop
-                stopTime.setDropOffType(1);
-                stopTime.setArrivalTime(stopTime.getDepartureTime());
-            } else if (counter == stops.size()-1) {
-                //Override last stop
-                stopTime.setPickupType(1);
-                stopTime.setDepartureTime(stopTime.getArrivalTime());
             }
 
             if (!foundMatch) {
-                stopTime.setArrivalTime(oldTimes.getArrivalTime(counter));
-                stopTime.setDepartureTime(oldTimes.getDepartureTime(counter));
+                stopTime.setArrivalTime(oldTimes.getArrivalTime(i));
+                stopTime.setDepartureTime(oldTimes.getDepartureTime(i));
                 modifiedStops.add(stopTime);
             }
         }

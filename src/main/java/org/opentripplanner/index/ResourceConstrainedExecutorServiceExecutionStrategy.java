@@ -9,24 +9,22 @@ import graphql.execution.ExecutionStrategy;
 import graphql.execution.SimpleExecutionStrategy;
 import graphql.language.Field;
 import graphql.schema.GraphQLObjectType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * TODO: write JavaDoc
- *
  */
 public class ResourceConstrainedExecutorServiceExecutionStrategy extends ExecutionStrategy {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ResourceConstrainedExecutorServiceExecutionStrategy.class);
 
     ExecutorService executorService;
 
@@ -53,10 +51,10 @@ public class ResourceConstrainedExecutorServiceExecutionStrategy extends Executi
 
     @Override
     public ExecutionResult execute(
-        final ExecutionContext executionContext,
-        final GraphQLObjectType parentType,
-        final Object source,
-        final Map<String, List<Field>> fields
+            final ExecutionContext executionContext,
+            final GraphQLObjectType parentType,
+            final Object source,
+            final Map<String, List<Field>> fields
     ) {
         if (executorService == null)
             return new SimpleExecutionStrategy().execute(executionContext, parentType, source, fields);
@@ -66,7 +64,13 @@ public class ResourceConstrainedExecutorServiceExecutionStrategy extends Executi
 
         for (String fieldName : fields.keySet()) {
             final List<Field> fieldList = fields.get(fieldName);
-            futures.add(() -> resolveField(executionContext, parentType, source, fieldList));
+            futures.add(() -> {
+                try {
+                    return resolveField(executionContext, parentType, source, fieldList);
+                } catch (Exception e) {
+                    throw new ExecutionException("Caught exception while resolving fieldName " + fieldName + ", fields: " + fields + ", parentType: " + parentType + ", source: " + source, e);
+                }
+            });
             fieldNames.add(fieldName);
         }
 
@@ -76,14 +80,22 @@ public class ResourceConstrainedExecutorServiceExecutionStrategy extends Executi
             List<Future<ExecutionResult>> executionResults = executorService.invokeAll(futures, timeout, timeUnit);
 
             for (int i = 0; i < executionResults.size(); i++) {
-                // TODO: Is there some kind of zip stream which could take this?
                 Future<ExecutionResult> executionResultFuture = executionResults.get(i);
-                ExecutionResult executionResult = executionResultFuture.get();
-                results.put(fieldNames.get(i), executionResult != null ? executionResult.getData() : null);
+                // TODO: Is there some kind of zip stream which could take this?
+                if (executionResultFuture != null) {
+
+                    try {
+                        ExecutionResult executionResult = executionResultFuture.get();
+                        results.put(fieldNames.get(i), executionResult != null ? executionResult.getData() : null);
+                    } catch (CancellationException e) {
+
+                        IllegalStateException ise = new IllegalStateException("Caught CancellationException while resolving field "
+                                + fieldNames.get(i) + "timeout: " + timeout + " " + timeUnit, e);
+                        executionContext.addError(new ExceptionWhileDataFetching(ise));
+                    }
+                }
             }
-        } catch (CancellationException e) {
-            executionContext.addError(new ExceptionWhileDataFetching(e));
-        } catch (ExecutionException|InterruptedException e) {
+        } catch (ExecutionException | InterruptedException e) {
             throw new GraphQLException(e);
         }
 

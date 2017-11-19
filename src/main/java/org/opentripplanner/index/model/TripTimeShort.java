@@ -6,12 +6,13 @@ import org.onebusaway2.gtfs.model.AgencyAndId;
 import org.onebusaway2.gtfs.model.Stop;
 import org.onebusaway2.gtfs.model.Trip;
 import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import com.beust.jcommander.internal.Lists;
 import org.opentripplanner.routing.core.ServiceDay;
 import org.opentripplanner.routing.edgetype.Timetable;
 import org.opentripplanner.routing.trippattern.RealTimeState;
 import org.opentripplanner.routing.trippattern.TripTimes;
 
-import com.beust.jcommander.internal.Lists;
+import static org.opentripplanner.model.StopPattern.PICKDROP_NONE;
 
 public class TripTimeShort {
 
@@ -79,9 +80,96 @@ public class TripTimeShort {
         List<TripTimeShort> out = Lists.newArrayList();
         // one per stop, not one per hop, thus the <= operator
         for (int i = 0; i < times.getNumStops(); ++i) {
-            out.add(new TripTimeShort(times, i, table.pattern.getStop(i), serviceDay));
+            Stop stop = table.pattern.getStop(i);
+            if (table.pattern.stopPattern.pickups[i] != PICKDROP_NONE |
+                    table.pattern.stopPattern.dropoffs[i] != PICKDROP_NONE) {
+                // If stop is neither pickup nor dropoff - do not include it in result
+                out.add(new TripTimeShort(times, i, stop, serviceDay));
+            }
         }
         return out;
     }
-    
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TripTimeShort)) {
+            return false;
+        }
+
+        TripTimeShort that = (TripTimeShort) o;
+
+        if (!stopId.equals(that.stopId)) {
+            return false;
+        }
+        if (realtimeState != that.realtimeState) {
+            return false;
+        }
+        if (!tripId.equals(that.tripId)) {
+            return false;
+        }
+        if (blockId != null ? !blockId.equals(that.blockId) : that.blockId != null) {
+            return false;
+        }
+        if (headsign != null ? !headsign.equals(that.headsign) : that.headsign != null) {
+            return false;
+        }
+        if (stopIndex != that.stopIndex) {
+            return false;
+        }
+        if (stopCount != that.stopCount) {
+            return false;
+        }
+        if (scheduledArrival != that.scheduledArrival) {
+            return false;
+        }
+        if (scheduledDeparture != that.scheduledDeparture) {
+            return false;
+        }
+        if (realtimeArrival != that.realtimeArrival) {
+            return false;
+        }
+        if (realtimeDeparture != that.realtimeDeparture) {
+            return false;
+        }
+        if (arrivalDelay != that.arrivalDelay) {
+            return false;
+        }
+        if (departureDelay != that.departureDelay) {
+            return false;
+        }
+        if (timepoint != that.timepoint) {
+            return false;
+        }
+        if (realtime != that.realtime) {
+            return false;
+        }
+        if (serviceDay != that.serviceDay) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = stopId.hashCode();
+        result = 31 * result + stopIndex;
+        result = 31 * result + stopCount;
+        result = 31 * result + scheduledArrival;
+        result = 31 * result + scheduledDeparture;
+        result = 31 * result + realtimeArrival;
+        result = 31 * result + realtimeDeparture;
+        result = 31 * result + arrivalDelay;
+        result = 31 * result + departureDelay;
+        result = 31 * result + (timepoint ? 1 : 0);
+        result = 31 * result + (realtime ? 1 : 0);
+        result = 31 * result + realtimeState.hashCode();
+        result = 31 * result + (int) (serviceDay ^ (serviceDay >>> 32));
+        result = 31 * result + tripId.hashCode();
+        result = 31 * result + (blockId != null ? blockId.hashCode() : 0);
+        result = 31 * result + (headsign != null ? headsign.hashCode() : 0);
+        return result;
+    }
 }

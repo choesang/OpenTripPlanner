@@ -20,6 +20,9 @@ import java.util.List;
 
 import org.onebusaway2.gtfs.model.StopTime;
 import org.onebusaway2.gtfs.model.Trip;
+import com.google.common.hash.HashCode;
+import com.google.common.hash.HashFunction;
+import com.google.common.hash.Hasher;
 import org.opentripplanner.common.MavenVersion;
 import org.opentripplanner.gtfs.BikeAccess;
 import org.opentripplanner.routing.core.RoutingRequest;
@@ -28,10 +31,6 @@ import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.request.BannedStopSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
-import com.google.common.hash.Hasher;
 
 /**
  * A TripTimes represents the arrival and departure times for a single trip in an Timetable. It is carried
@@ -205,7 +204,7 @@ public class TripTimes implements Serializable, Comparable<TripTimes>, Cloneable
      * have a pointer to its enclosing timetable or pattern.
      */
     public String getHeadsign(final int stop) {
-        if (headsigns == null) {
+        if (headsigns == null || headsigns[stop] == null) {
             return trip.getTripHeadsign();
         } else {
             return headsigns[stop];

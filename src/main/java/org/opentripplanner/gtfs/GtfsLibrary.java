@@ -61,7 +61,11 @@ public class GtfsLibrary {
     }
 
     public static String convertIdToString(AgencyAndId aid) {
-        return aid.getAgencyId() + ID_SEPARATOR + aid.getId();
+        if (aid != null) {
+            return aid.getAgencyId() + ID_SEPARATOR + aid.getId();
+        } else {
+            return null;
+        }
     }
 
     /** @return the route's short name, or the long name if the short name is null. */

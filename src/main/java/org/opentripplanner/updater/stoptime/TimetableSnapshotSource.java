@@ -121,6 +121,10 @@ public class TimetableSnapshotSource {
         SIRI_FEED_ID = graphIndex.agenciesForFeedId.keySet().iterator().next();
     }
 
+    public String getFeedId() {
+        return SIRI_FEED_ID;
+    }
+
     /**
      * @return an up-to-date snapshot mapping TripPatterns to Timetables. This snapshot and the
      *         timetable objects it references are guaranteed to never change, so the requesting
@@ -486,9 +490,6 @@ public class TimetableSnapshotSource {
 
         final List<Stop> stops = pattern.getStops();
 
-        // Create StopTimes
-        final List<StopTime> stopTimes = new ArrayList<>(updatedTripTimes.getNumStops());
-
         int accumulatedDelayTime = 0;
 
         VehicleActivityStructure.MonitoredVehicleJourney monitoredVehicleJourney = activity.getMonitoredVehicleJourney();
@@ -503,12 +504,18 @@ public class TimetableSnapshotSource {
 
                     final Stop stop = stops.get(index);
 
-                    // Create stop time
-                    final StopTime stopTime = new StopTime();
-                    stopTime.setTrip(trip);
-                    stopTime.setStop(stop);
+                    boolean stopIdMatches = stop.getId().getId().equals(monitoredCall.getStopPointRef().getValue());
 
-                    if (stop.getId().getId().equals(monitoredCall.getStopPointRef().getValue())) {
+                    if (!stopIdMatches && stop.getParentStation() != null) {
+                        AgencyAndId alternativeId = new AgencyAndId(stop.getId().getAgencyId(), monitoredCall.getStopPointRef().getValue());
+                        Stop alternativeStop = graphIndex.stopForId.get(alternativeId);
+                        if (alternativeStop != null && alternativeStop.getParentStation() != null) {
+                            stopIdMatches = stop.getParentStation().equals(alternativeStop.getParentStation());
+                        }
+                    }
+
+
+                    if (stopIdMatches) {
                         if (delay != null) {
                             accumulatedDelayTime += delay.getSign()*(delay.getHours() *3600 + delay.getMinutes() *60 + delay.getSeconds());
                         }
@@ -518,29 +525,6 @@ public class TimetableSnapshotSource {
                             LOG.debug("Added delay of [{}s] before stop [{}] on trip [{}]", accumulatedDelayTime, monitoredCall.getStopPointRef().getValue(), trip.getId());
                         }
                     }
-
-                    stopTime.setArrivalTime(updatedTripTimes.getArrivalTime(index));
-                    stopTime.setDepartureTime(updatedTripTimes.getDepartureTime(index));
-
-                    stopTime.setTimepoint(1); // Exact time
-
-                    // Set pickup type
-                    // Set different pickup type for last stop
-                    if (index == updatedTripTimes.getNumStops() - 1) {
-                        stopTime.setPickupType(1); // No pickup available
-                    } else {
-                        stopTime.setPickupType(0); // Regularly scheduled pickup
-                    }
-                    // Set drop off type
-                    // Set different drop off type for first stop
-                    if (index == 0) {
-                        stopTime.setDropOffType(1); // No drop off available
-                    } else {
-                        stopTime.setDropOffType(0); // Regularly scheduled drop off
-                    }
-
-                    // Add stop time to list
-                    stopTimes.add(stopTime);
                 }
             }
 
@@ -571,13 +555,13 @@ public class TimetableSnapshotSource {
         Set<Trip> trips = siriFuzzyTripMatcher.match(estimatedVehicleJourney);
 
         //Values used in logging
-        Boolean isMonitored = estimatedVehicleJourney.isMonitored();
-        String lineRef = estimatedVehicleJourney.getLineRef().getValue();
-        String vehicleJourneyRef = (estimatedVehicleJourney.getVehicleRef() != null ? estimatedVehicleJourney.getVehicleRef().getValue():null);
         String operatorRef = (estimatedVehicleJourney.getOperatorRef() != null ? estimatedVehicleJourney.getOperatorRef().getValue():null);
+        String vehicleModes = ""+estimatedVehicleJourney.getVehicleModes();
+        String lineRef = estimatedVehicleJourney.getLineRef().getValue();
+        String vehicleRef = (estimatedVehicleJourney.getVehicleRef() != null ? estimatedVehicleJourney.getVehicleRef().getValue():null);
 
         if (trips == null || trips.isEmpty()) {
-            LOG.info("No trips found for EstimatedVehicleJourney (lastStopId, departureTime). [operator={}, isMonitored={}, lineRef={}, vehicleJourneyRef={}]", operatorRef, isMonitored, lineRef, vehicleJourneyRef);
+            LOG.info("No trips found for EstimatedVehicleJourney. [operator={}, vehicleModes={}, lineRef={}, vehicleRef={}]", operatorRef, vehicleModes, lineRef, vehicleRef);
             return false;
         }
 
@@ -585,7 +569,7 @@ public class TimetableSnapshotSource {
         Set<Trip> matchingTrips = getTripForJourney(trips, estimatedVehicleJourney);
 
         if (matchingTrips == null || matchingTrips.isEmpty()) {
-            LOG.info("Found no matching trip for SIRI ET (serviceDate, departureTime). [operator={}, isMonitored={}, lineRef={}, vehicleJourneyRef={}]", operatorRef, isMonitored, lineRef, vehicleJourneyRef);
+            LOG.info("Found no matching trip for SIRI ET (serviceDate, departureTime). [operator={}, vehicleModes={}, lineRef={}, vehicleJourneyRef={}]", operatorRef, vehicleModes, lineRef, vehicleRef);
             return false;
         }
 
@@ -596,7 +580,7 @@ public class TimetableSnapshotSource {
             TripPattern pattern = getPatternForTrip(matchingTrip, estimatedVehicleJourney);
             if (pattern != null) {
                 TripTimes updatedTripTimes = pattern.scheduledTimetable.createUpdatedTripTimes(graph, estimatedVehicleJourney, timeZone, matchingTrip.getId());
-                if (updatedTripTimes != null && updatedTripTimes.getNumStops() == estimatedCalls.getEstimatedCalls().size()) {
+                if (updatedTripTimes != null && pattern.stopPattern.size == updatedTripTimes.getNumStops()) {
                     patterns.add(pattern);
                     times.add(updatedTripTimes);
                 }
@@ -604,29 +588,12 @@ public class TimetableSnapshotSource {
         }
 
         if (patterns.isEmpty()) {
-            LOG.info("Found no matching pattern for SIRI ET (firstStopId, lastStopId, numberOfStops). [operator={}, isMonitored={}, lineRef={}, vehicleJourneyRef={}]", operatorRef, isMonitored, lineRef, vehicleJourneyRef);
+            LOG.info("Found no matching pattern for SIRI ET (firstStopId, lastStopId, numberOfStops). [operator={}, vehicleModes={}, lineRef={}, vehicleRef={}]", operatorRef, vehicleModes, lineRef, vehicleRef);
             return false;
         }
 
         if (times.isEmpty()) {
             return false;
-        }
-
-        //Update platformCode
-        for (EstimatedCall updated : estimatedCalls.getEstimatedCalls()) {
-            Stop stop = graphIndex.stopForId.get(new AgencyAndId(graphIndex.agenciesForFeedId.keySet().iterator().next(), updated.getStopPointRef().getValue()));
-            if (stop != null) {
-                String platformCode = stop.getPlatformCode();
-                if (updated.getDeparturePlatformName() != null) {
-                    platformCode = updated.getDeparturePlatformName().getValue();
-                } else if (updated.getArrivalPlatformName() != null) {
-                    platformCode = updated.getArrivalPlatformName().getValue();
-                }
-                if (platformCode != null && !platformCode.equals(stop.getPlatformCode())) {
-                    stop.setPlatformCode(platformCode);
-                    graphIndex.stopForId.put(stop.getId(), stop);
-                }
-            }
         }
 
         ZonedDateTime date;
@@ -647,27 +614,33 @@ public class TimetableSnapshotSource {
         for (TripTimes tripTimes : times) {
             Trip trip = tripTimes.trip;
             for (TripPattern pattern : patterns) {
-                if (!tripTimes.isCanceled() && tripTimes.getRealTimeState() == RealTimeState.MODIFIED) {
+                if (tripTimes.getNumStops() == pattern.stopPattern.stops.length) {
+                    if (!tripTimes.isCanceled() && tripTimes.getRealTimeState() == RealTimeState.MODIFIED) {
 
-                    cancelScheduledTrip(SIRI_FEED_ID, trip.getId().getId(), serviceDate);
+                        cancelScheduledTrip(SIRI_FEED_ID, trip.getId().getId(), serviceDate);
 
-                    // Check whether trip id has been used for previously ADDED/MODIFIED trip message and cancel
-                    // previously created trip
-                    cancelPreviouslyAddedTrip(SIRI_FEED_ID, trip.getId().getId(), serviceDate);
+                        // Check whether trip id has been used for previously ADDED/MODIFIED trip message and cancel
+                        // previously created trip
+                        cancelPreviouslyAddedTrip(SIRI_FEED_ID, trip.getId().getId(), serviceDate);
 
-                    // Calculate modified stop-pattern
-                    List<Stop> modifiedStops = pattern.scheduledTimetable.createModifiedStops(estimatedVehicleJourney, graphIndex);
-                    List<StopTime> modifiedStopTimes = pattern.scheduledTimetable.createModifiedStopTimes(tripTimes, estimatedVehicleJourney, trip, graphIndex);
+                        // Calculate modified stop-pattern
+                        List<Stop> modifiedStops = pattern.scheduledTimetable.createModifiedStops(estimatedVehicleJourney, graphIndex);
+                        List<StopTime> modifiedStopTimes = pattern.scheduledTimetable.createModifiedStopTimes(tripTimes, estimatedVehicleJourney, trip, graphIndex);
 
-                    if (modifiedStops != null && modifiedStops.isEmpty()) {
-                        tripTimes.cancel();
-                    } else {
-                        // Add new trip
-                        result = result | addTripToGraphAndBuffer(SIRI_FEED_ID, graph, trip, modifiedStopTimes, modifiedStops, tripTimes, serviceDate);
-                        continue;
+                        if (modifiedStops != null && modifiedStops.isEmpty()) {
+                            tripTimes.cancel();
+                        } else {
+                            // Add new trip
+                            result = result | addTripToGraphAndBuffer(SIRI_FEED_ID, graph, trip, modifiedStopTimes, modifiedStops, tripTimes, serviceDate);
+                            continue;
+                        }
                     }
+                    result = result | buffer.update(SIRI_FEED_ID, pattern, tripTimes, serviceDate);
+
+                    LOG.debug("Applied realtime data for trip {}", trip.getId().getId());
+                } else {
+                    LOG.info("Ignoring update since number of stops do not match");
                 }
-                result = result | buffer.update(SIRI_FEED_ID, pattern, tripTimes, serviceDate);
             }
         }
 
@@ -1096,7 +1069,7 @@ public class TimetableSnapshotSource {
         final StopPattern stopPattern = new StopPattern(stopTimes);
 
         // Get cached trip pattern or create one if it doesn't exist yet
-        final TripPattern pattern = tripPatternCache.getOrCreateTripPattern(stopPattern, trip.getRoute(), graph);
+        final TripPattern pattern = tripPatternCache.getOrCreateTripPattern(stopPattern, trip.getRoute(), graph, serviceDate);
 
         // Add service code to bitset of pattern if needed (using copy on write)
         final int serviceCode = graph.serviceCodes.get(trip.getServiceId());
@@ -1146,7 +1119,7 @@ public class TimetableSnapshotSource {
         final StopPattern stopPattern = new StopPattern(stopTimes);
 
         // Get cached trip pattern or create one if it doesn't exist yet
-        final TripPattern pattern = tripPatternCache.getOrCreateTripPattern(stopPattern, trip.getRoute(), graph);
+        final TripPattern pattern = tripPatternCache.getOrCreateTripPattern(stopPattern, trip.getRoute(), graph, serviceDate);
 
         // Add service code to bitset of pattern if needed (using copy on write)
         final int serviceCode = graph.serviceCodes.get(trip.getServiceId());
@@ -1166,6 +1139,7 @@ public class TimetableSnapshotSource {
         pattern.scheduledTimetable.tripTimes.clear();
         pattern.scheduledTimetable.addTripTimes(updatedTripTimes);
         pattern.scheduledTimetable.finish();
+
 
         //TODO: Add pattern to index?
 
@@ -1226,6 +1200,7 @@ public class TimetableSnapshotSource {
                 final TripTimes newTripTimes = new TripTimes(timetable.getTripTimes(tripIndex));
                 newTripTimes.cancel();
                 buffer.update(feedId, pattern, newTripTimes, serviceDate);
+//                buffer.removeLastAddedTripPattern(feedId, tripId, serviceDate);
                 success = true;
             }
         }
@@ -1453,8 +1428,6 @@ public class TimetableSnapshotSource {
     }
     private TripPattern getPatternForTrip(Trip trip, EstimatedVehicleJourney journey) {
 
-        TripPattern tripPattern = graphIndex.patternForTrip.get(trip);
-
         Set<ServiceDate> serviceDates = graphIndex.graph.getCalendarService().getServiceDatesForServiceId(trip.getServiceId());
 
         List<RecordedCall> recordedCalls = (journey.getRecordedCalls() != null ? journey.getRecordedCalls().getRecordedCalls():new ArrayList<>());
@@ -1475,6 +1448,20 @@ public class TimetableSnapshotSource {
             }
 
             String journeyLastStopId = estimatedCalls.get(estimatedCalls.size() - 1).getStopPointRef().getValue();
+
+
+            TripPattern lastAddedTripPattern = null;
+            if (getTimetableSnapshot() != null) {
+                lastAddedTripPattern  = getTimetableSnapshot().getLastAddedTripPattern(trip.getId().getAgencyId(), trip.getId().getId(), journeyDate);
+            }
+
+            TripPattern tripPattern;
+            if (lastAddedTripPattern != null) {
+                tripPattern = lastAddedTripPattern;
+            } else {
+                tripPattern = graphIndex.patternForTrip.get(trip);
+            }
+
 
             Stop firstStop = tripPattern.getStop(0);
             Stop lastStop = tripPattern.getStop(tripPattern.getStops().size() - 1);
@@ -1580,31 +1567,30 @@ public class TimetableSnapshotSource {
             Set<ServiceDate> serviceDatesForServiceId = graphIndex.graph.getCalendarService().getServiceDatesForServiceId(trip.getServiceId());
             if (serviceDatesForServiceId.contains(serviceDate)) {
 
-                for (TripPattern pattern : graphIndex.patternsForRoute.get(trip.getRoute())) {
-                    int matchingStopId = stopNumber-1;
-                    for (int i = 0; i < pattern.stopPattern.stops.length; i++) {
-                        Stop stop = pattern.stopPattern.stops[i];
-                        if (firstStopId.equals(stop.getId().getId())) {
-                            matchingStopId = i;
-                            break;
-                        } else {
-                            String agencyId = stop.getId().getAgencyId();
-                            if (stop.getParentStation() != null) {
-                                Stop alternativeStop = graphIndex.stopForId.get(new AgencyAndId(agencyId, firstStopId));
-                                if (alternativeStop != null &&
-                                        stop.getParentStation().equals(alternativeStop.getParentStation())) {
-                                    matchingStopId = i;
-                                    break;
+                TripPattern pattern = graphIndex.patternForTrip.get(trip);
+
+                if (stopNumber < pattern.stopPattern.stops.length) {
+                    boolean firstReportedStopIsFound = false;
+                    Stop stop = pattern.stopPattern.stops[stopNumber-1];
+                    if (firstStopId.equals(stop.getId().getId())) {
+                       firstReportedStopIsFound = true;
+                    } else {
+                        String agencyId = stop.getId().getAgencyId();
+                        if (stop.getParentStation() != null) {
+                            Stop alternativeStop = graphIndex.stopForId.get(new AgencyAndId(agencyId, firstStopId));
+                            if (alternativeStop != null &&
+                                    stop.getParentStation().equals(alternativeStop.getParentStation())) {
+                                firstReportedStopIsFound = true;
+                            }
+                        }
+                    }
+                    if (firstReportedStopIsFound) {
+                        for (TripTimes times : pattern.scheduledTimetable.tripTimes) {
+                            if (times.getScheduledDepartureTime(stopNumber - 1) == departureInSecondsSinceMidnight) {
+                                if (graphIndex.graph.getCalendarService().getServiceDatesForServiceId(times.trip.getServiceId()).contains(serviceDate)) {
+                                    result.add(times.trip);
                                 }
                             }
-
-                        }
-
-                    }
-                    for (TripTimes times : pattern.scheduledTimetable.tripTimes) {
-                        if (stopNumber < times.getNumStops() &&
-                                times.getScheduledDepartureTime(matchingStopId) == departureInSecondsSinceMidnight) {
-                            result.add(trip);
                         }
                     }
                 }

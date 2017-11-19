@@ -1204,6 +1204,7 @@ public class IndexGraphQLSchema {
                     }
                     return stream.flatMap(stoptimesWithPattern -> stoptimesWithPattern.times.stream())
                     .sorted(Comparator.comparing(t -> t.serviceDay + t.realtimeDeparture))
+                    .distinct()
                     .limit((long) (int) environment.getArgument("numberOfDepartures"))
                     .collect(Collectors.toList());
                 })
@@ -1405,6 +1406,7 @@ public class IndexGraphQLSchema {
             .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("stoptimes")
                 .type(new GraphQLList(stoptimeType))
+                .description("Returns scheduled stoptimes only - without realtime-updates, for realtime-data use 'stoptimesForDate'")
                 .dataFetcher(environment -> TripTimeShort.fromTripTimes(
                     index.patternForTrip.get((Trip) environment.getSource()).scheduledTimetable,
                     environment.getSource()))
@@ -1412,6 +1414,7 @@ public class IndexGraphQLSchema {
             .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("stoptimesForDate")
                 .type(new GraphQLList(stoptimeType))
+                .description("Returns scheduled stoptimes updated with realtime-updates")
                 .argument(GraphQLArgument.newArgument()
                     .name("serviceDay")
                     .type(Scalars.GraphQLString)
@@ -1420,7 +1423,8 @@ public class IndexGraphQLSchema {
                 .dataFetcher(environment -> {
                     try {
                         final Trip trip = environment.getSource();
-                        final String argServiceDay = environment.getArgument("serviceDay");
+
+                        final String argServiceDay = cleanupServiceDayArgument(environment.getArgument("serviceDay"));
                         final ServiceDate serviceDate = argServiceDay != null
                             ? ServiceDate.parseString(argServiceDay) : new ServiceDate();
                         final ServiceDay serviceDay = new ServiceDay(index.graph, serviceDate,
@@ -1430,7 +1434,12 @@ public class IndexGraphQLSchema {
                         if (timetableSnapshotSource != null) {
                             TimetableSnapshot timetableSnapshot = timetableSnapshotSource.getTimetableSnapshot();
                             if (timetableSnapshot != null) {
-                                timetable = timetableSnapshot.resolve(index.patternForTrip.get(trip), serviceDate);
+                                // Check if realtime-data is available for trip
+                                TripPattern pattern = timetableSnapshot.getLastAddedTripPattern(timetableSnapshotSource.getFeedId(), trip.getId().getId(), serviceDate);
+                                if (pattern == null) {
+                                    pattern = index.patternForTrip.get(trip);
+                                }
+                                timetable = timetableSnapshot.resolve(pattern, serviceDate);
                             }
                         }
                         if (timetable == null) {
@@ -1529,7 +1538,7 @@ public class IndexGraphQLSchema {
                 .dataFetcher(environment -> {
                     try {
                         BitSet services = index.servicesRunning(
-                            ServiceDate.parseString(environment.getArgument("serviceDay"))
+                            ServiceDate.parseString(cleanupServiceDayArgument(environment.getArgument("serviceDay")))
                         );
                         return ((TripPattern) environment.getSource()).scheduledTimetable.tripTimes
                             .stream()
@@ -2486,6 +2495,14 @@ public class IndexGraphQLSchema {
         indexSchema = GraphQLSchema.newSchema()
             .query(queryType)
             .build(dictionary);
+    }
+
+    //Supporting serviceDay format to be the same as date-format - for consistency
+    private String cleanupServiceDayArgument(String serviceDayArgument) {
+        if (serviceDayArgument != null) {
+           serviceDayArgument = serviceDayArgument.replace("-", "");
+        }
+        return serviceDayArgument;
     }
 
     private List<AgencyAndId> toIdList(List<String> ids) {

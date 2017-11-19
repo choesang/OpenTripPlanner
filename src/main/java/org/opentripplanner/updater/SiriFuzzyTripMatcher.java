@@ -5,6 +5,8 @@ import org.onebusaway2.gtfs.model.Route;
 import org.onebusaway2.gtfs.model.Stop;
 import org.onebusaway2.gtfs.model.Trip;
 import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.opentripplanner.gtfs.GtfsLibrary;
+import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.edgetype.TripPattern;
 import org.opentripplanner.routing.graph.GraphIndex;
 import org.opentripplanner.routing.trippattern.TripTimes;
@@ -82,7 +84,7 @@ public class SiriFuzzyTripMatcher {
             trips = getCachedTripsBySiriId(journey.getVehicleRef().getValue());
         }
 
-        if (trips == null) {
+        if (trips == null || trips.isEmpty()) {
             String datedVehicleRef = null;
             if (journey.getDatedVehicleJourneyRef() != null) {
                 datedVehicleRef = journey.getDatedVehicleJourneyRef().getValue();
@@ -93,7 +95,7 @@ public class SiriFuzzyTripMatcher {
                 trips = mappedTripsCache.get(datedVehicleRef);
             }
         }
-        if (trips == null) {
+        if (trips == null || trips.isEmpty()) {
             List<EstimatedCall> estimatedCalls = journey.getEstimatedCalls().getEstimatedCalls();
             EstimatedCall lastStop = estimatedCalls.get(estimatedCalls.size() - 1);
 
@@ -108,7 +110,7 @@ public class SiriFuzzyTripMatcher {
                 trips = start_stop_tripCache.get(createStartStopKey(lastStopPoint, lastStopArrivalTime));
             }
 
-            if (trips == null) {
+            if (trips == null || trips.isEmpty()) {
                 //SIRI-data may report other platform, but still on the same Parent-stop
                 String agencyId = index.agenciesForFeedId.keySet().iterator().next();
                 Stop stop = index.stopForId.get(new AgencyAndId(agencyId, lastStopPoint));
@@ -132,7 +134,7 @@ public class SiriFuzzyTripMatcher {
 
     private Set<Trip> getCachedTripsBySiriId(String tripId) {
         if (tripId == null) {return null;}
-        return mappedTripsCache.get(tripId);
+        return mappedTripsCache.getOrDefault(tripId, new HashSet<>());
     }
 
     private static void initCache(GraphIndex index) {
@@ -141,29 +143,30 @@ public class SiriFuzzyTripMatcher {
             Set<Trip> trips = index.patternForTrip.keySet();
             for (Trip trip : trips) {
 
-                String currentTripId = getUnpaddedTripId(trip.getId().getId());
+                TripPattern tripPattern = index.patternForTrip.get(trip);
 
-                if (mappedTripsCache.containsKey(currentTripId)) {
-                    mappedTripsCache.get(currentTripId).add(trip);
-                } else {
-                    Set<Trip> initialSet = new HashSet<>();
-                    initialSet.add(trip);
-                    mappedTripsCache.put(currentTripId, initialSet);
-                }
+                    String currentTripId = getUnpaddedTripId(trip.getId().getId());
 
-                if (trip.getTripShortName() != null) {
-                    String tripShortName = trip.getTripShortName();
-
-                    if (mappedTripsCache.containsKey(tripShortName)) {
-                        mappedTripsCache.get(tripShortName).add(trip);
+                    if (mappedTripsCache.containsKey(currentTripId)) {
+                        mappedTripsCache.get(currentTripId).add(trip);
                     } else {
                         Set<Trip> initialSet = new HashSet<>();
                         initialSet.add(trip);
-                        mappedTripsCache.put(tripShortName, initialSet);
+                        mappedTripsCache.put(currentTripId, initialSet);
+                    }
+
+                if (tripPattern != null && tripPattern.mode.equals(TraverseMode.RAIL)) {
+                    if (trip.getTripShortName() != null) {
+                        String tripShortName = trip.getTripShortName();
+                        if (mappedTripsCache.containsKey(tripShortName)) {
+                            mappedTripsCache.get(tripShortName).add(trip);
+                        } else {
+                            Set<Trip> initialSet = new HashSet<>();
+                            initialSet.add(trip);
+                            mappedTripsCache.put(tripShortName, initialSet);
+                        }
                     }
                 }
-
-                TripPattern tripPattern = index.patternForTrip.get(trip);
                 String lastStopId = tripPattern.getStops().get(tripPattern.getStops().size()-1).getId().getId();
 
                 TripTimes tripTimes = tripPattern.scheduledTimetable.getTripTimes(trip);
@@ -256,6 +259,24 @@ public class SiriFuzzyTripMatcher {
         for (Trip trip : trips) {
             if (trip.getId().getId().equals(vehicleJourney)) {
                 return trip.getId();
+            }
+        }
+        return null;
+    }
+
+    public AgencyAndId getTripIdForTripShortNameServiceDateAndMode(String tripShortName, ServiceDate serviceDate, TraverseMode traverseMode) {
+
+        Set<Trip> cachedTripsBySiriId = getCachedTripsBySiriId(tripShortName);
+
+        for (Trip trip : cachedTripsBySiriId) {
+            if (GtfsLibrary.getTraverseMode(trip.getRoute()).equals(traverseMode)) {
+                Set<ServiceDate> serviceDates = index.graph.getCalendarService().getServiceDatesForServiceId(trip.getServiceId());
+
+                if (serviceDates.contains(serviceDate) &&
+                        trip.getTripShortName() != null &&
+                        trip.getTripShortName().equals(tripShortName)) {
+                    return trip.getId();
+                }
             }
         }
         return null;
