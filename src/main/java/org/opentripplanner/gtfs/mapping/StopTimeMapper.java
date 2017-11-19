@@ -13,7 +13,8 @@
 
 package org.opentripplanner.gtfs.mapping;
 
-import org.onebusaway2.gtfs.model.StopTime;
+import org.opentripplanner.model.StopTime;
+import org.opentripplanner.util.MapUtils;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -32,7 +33,7 @@ class StopTimeMapper {
     }
 
     Collection<StopTime> map(Collection<org.onebusaway.gtfs.model.StopTime> times) {
-        return MapCollection.mapCollection(times, this::map);
+        return MapUtils.mapToList(times, this::map);
     }
 
     StopTime map(org.onebusaway.gtfs.model.StopTime orginal) {
@@ -41,8 +42,6 @@ class StopTimeMapper {
 
     private StopTime doMap(org.onebusaway.gtfs.model.StopTime rhs) {
         StopTime lhs = new StopTime();
-
-        lhs.setId(rhs.getId());
 
         lhs.setId(rhs.getId());
         lhs.setTrip(tripMapper.map(rhs.getTrip()));

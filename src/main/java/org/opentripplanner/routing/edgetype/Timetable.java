@@ -18,11 +18,12 @@ import com.google.transit.realtime.GtfsRealtime.TripDescriptor;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeEvent;
 import com.google.transit.realtime.GtfsRealtime.TripUpdate.StopTimeUpdate;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.Stop;
-import org.onebusaway2.gtfs.model.StopTime;
-import org.onebusaway2.gtfs.model.Trip;
-import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.StopTime;
+import org.opentripplanner.model.Trip;
+import org.opentripplanner.model.calendar.ServiceDate;
+
 import org.opentripplanner.common.MavenVersion;
 import org.opentripplanner.routing.core.ServiceDay;
 import org.opentripplanner.routing.core.State;

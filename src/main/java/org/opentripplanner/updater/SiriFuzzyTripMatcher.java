@@ -1,10 +1,10 @@
 package org.opentripplanner.updater;
 
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.Route;
-import org.onebusaway2.gtfs.model.Stop;
-import org.onebusaway2.gtfs.model.Trip;
-import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.Route;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.Trip;
+import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.edgetype.TripPattern;

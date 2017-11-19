@@ -14,11 +14,11 @@
 package org.opentripplanner.routing.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.FareAttribute;
-import org.onebusaway2.gtfs.model.FareRule;
-import org.onebusaway2.gtfs.model.Route;
-import org.onebusaway2.gtfs.services.GtfsDao;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.FareAttribute;
+import org.opentripplanner.model.FareRule;
+import org.opentripplanner.model.Route;
+import org.opentripplanner.model.OtpTransitDao;
 import org.opentripplanner.routing.bike_rental.TimeBasedBikeRentalFareServiceFactory;
 import org.opentripplanner.routing.core.Fare.FareType;
 import org.opentripplanner.routing.core.FareRuleSet;
@@ -52,7 +52,7 @@ public class DefaultFareServiceFactory implements FareServiceFactory {
     }
 
     @Override
-    public void processGtfs(GtfsDao dao) {
+    public void processGtfs(OtpTransitDao dao) {
         fillFareRules(null, dao.getAllFareAttributes(), dao.getAllFareRules(), regularFareRules);
     }
 

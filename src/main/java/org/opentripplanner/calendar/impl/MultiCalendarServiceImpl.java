@@ -13,11 +13,12 @@
 
 package org.opentripplanner.calendar.impl;
 
-import org.onebusaway2.gtfs.model.Agency;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
-import org.onebusaway2.gtfs.model.calendar.LocalizedServiceId;
-import org.onebusaway2.gtfs.services.GtfsDao;
+import org.opentripplanner.model.Agency;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.calendar.CalendarServiceData;
+import org.opentripplanner.model.calendar.LocalizedServiceId;
+
+import java.util.List;
 
 /**
  * This is actually kind of a hack, and assumes that there is only one copy of CalendarServiceData
@@ -32,9 +33,9 @@ public class MultiCalendarServiceImpl extends CalendarServiceImpl {
         super(new CalendarServiceData());
     }
 
-    public void addData(CalendarServiceData data, GtfsDao dao) {
+    public void addData(CalendarServiceData data, List<Agency> agencies) {
         CalendarServiceData _data = super.getData();
-        for (Agency agency : dao.getAllAgencies()) {
+        for (Agency agency : agencies) {
             String agencyId = agency.getId();
             _data.putTimeZoneForAgencyId(agencyId, data.getTimeZoneForAgencyId(agencyId));
         }

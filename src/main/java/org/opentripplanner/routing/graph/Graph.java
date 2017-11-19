@@ -24,13 +24,13 @@ import gnu.trove.list.linked.TDoubleLinkedList;
 import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.joda.time.DateTime;
 import org.opentripplanner.calendar.impl.CalendarServiceImpl;
-import org.onebusaway2.gtfs.model.Agency;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.Stop;
-import org.onebusaway2.gtfs.model.FeedInfo;
-import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
-import org.onebusaway2.gtfs.model.calendar.ServiceDate;
-import org.onebusaway2.gtfs.services.calendar.CalendarService;
+import org.opentripplanner.model.Agency;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.FeedInfo;
+import org.opentripplanner.model.calendar.CalendarServiceData;
+import org.opentripplanner.model.calendar.ServiceDate;
+import org.opentripplanner.model.CalendarService;
 import org.opentripplanner.analyst.core.GeometryIndex;
 import org.opentripplanner.analyst.request.SampleFactory;
 import org.opentripplanner.common.MavenVersion;
@@ -69,7 +69,7 @@ import java.util.prefs.Preferences;
 /**
  * A graph is really just one or more indexes into a set of vertexes. It used to keep edgelists for each vertex, but those are in the vertex now.
  */
-public class Graph implements Serializable {
+public class Graph implements Serializable, AddBuilderAnnotation {
 
     private static final Logger LOG = LoggerFactory.getLogger(Graph.class);
 

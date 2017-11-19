@@ -134,7 +134,7 @@ public class GraphBuilderParameters {
      */
     public boolean allowDuplicateStops = false;
 
-    /** 
+    /**
      * This field indicates the pruning threshold for islands without stops.
      * Any such island under this size will be pruned.
      */
@@ -163,6 +163,11 @@ public class GraphBuilderParameters {
      * Transfers up to this length in meters will be pre-calculated and included in the Graph.
      */
     public final double maxTransferDistance;
+
+    /**
+     * Netex spesific build parameters.
+     */
+    public final NetexParameters netex;
 
     /**
      * This will add extra edges when linking a stop to a platform, to prevent detours along the platform edge.
@@ -204,6 +209,7 @@ public class GraphBuilderParameters {
         banDiscouragedBiking = config.path("banDiscouragedBiking").asBoolean(false);
         maxTransferDistance = config.path("maxTransferDistance").asDouble(2000);
         extraEdgesStopPlatformLink = config.path("extraEdgesStopPlatformLink").asBoolean(false);
+        netex = new NetexParameters(config.path("netex"));
     }
 
 }

@@ -14,18 +14,17 @@
 package org.opentripplanner.routing.algorithm;
 
 import junit.framework.TestCase;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.calendar.CalendarServiceData;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.calendar.CalendarServiceData;
 import org.opentripplanner.ConstantsForTests;
 import org.opentripplanner.gtfs.GtfsContext;
-import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.routing.core.Fare;
 import org.opentripplanner.routing.core.Fare.FareType;
 import org.opentripplanner.routing.core.FareComponent;
 import org.opentripplanner.routing.core.Money;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.WrappedCurrency;
-import org.opentripplanner.routing.edgetype.factory.GTFSPatternHopFactory;
+import org.opentripplanner.routing.edgetype.factory.PatternHopFactory;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.impl.SeattleFareServiceFactory;
 import org.opentripplanner.routing.services.FareService;
@@ -33,10 +32,10 @@ import org.opentripplanner.routing.spt.GraphPath;
 import org.opentripplanner.routing.spt.ShortestPathTree;
 import org.opentripplanner.util.TestUtils;
 
-import java.io.File;
 import java.util.List;
 
 import static org.opentripplanner.calendar.impl.CalendarServiceDataFactoryImpl.createCalendarServiceData;
+import static org.opentripplanner.gtfs.GtfsContextBuilder.contextBuilder;
 
 public class TestFares extends TestCase {
 
@@ -45,12 +44,12 @@ public class TestFares extends TestCase {
     public void testBasic() throws Exception {
 
         Graph gg = new Graph();
-        GtfsContext context = GtfsLibrary.readGtfs(new File(ConstantsForTests.CALTRAIN_GTFS));
-        GTFSPatternHopFactory factory = new GTFSPatternHopFactory(context);
+        GtfsContext context = contextBuilder(ConstantsForTests.CALTRAIN_GTFS).build();
+        PatternHopFactory factory = new PatternHopFactory(context);
         factory.run(gg);
         gg.putService(
                 CalendarServiceData.class,
-                createCalendarServiceData(context.getDao())
+                createCalendarServiceData(context.getTransitBuilder())
         );
         RoutingRequest options = new RoutingRequest();
         String feedId = gg.getFeedIds().iterator().next();
@@ -122,15 +121,15 @@ public class TestFares extends TestCase {
     public void testKCM() throws Exception {
     	
     	Graph gg = new Graph();
-        GtfsContext context = GtfsLibrary.readGtfs(new File(ConstantsForTests.KCM_GTFS));
+        GtfsContext context = contextBuilder(ConstantsForTests.KCM_GTFS).build();
         
-        GTFSPatternHopFactory factory = new GTFSPatternHopFactory(context);
+        PatternHopFactory factory = new PatternHopFactory(context);
         factory.setFareServiceFactory(new SeattleFareServiceFactory());
         
         factory.run(gg);
         gg.putService(
                 CalendarServiceData.class,
-                createCalendarServiceData(context.getDao())
+                createCalendarServiceData(context.getTransitBuilder())
         );
         RoutingRequest options = new RoutingRequest();
         String feedId = gg.getFeedIds().iterator().next();
@@ -164,12 +163,12 @@ public class TestFares extends TestCase {
 
     public void testFareComponent() throws Exception {
         Graph gg = new Graph();
-        GtfsContext context = GtfsLibrary.readGtfs(new File(ConstantsForTests.FARE_COMPONENT_GTFS));
-        GTFSPatternHopFactory factory = new GTFSPatternHopFactory(context);
+        GtfsContext context = contextBuilder(ConstantsForTests.FARE_COMPONENT_GTFS).build();
+        PatternHopFactory factory = new PatternHopFactory(context);
         factory.run(gg);
         gg.putService(
                 CalendarServiceData.class,
-                createCalendarServiceData(context.getDao())
+                createCalendarServiceData(context.getTransitBuilder())
         );
         String feedId = gg.getFeedIds().iterator().next();
         RoutingRequest options = new RoutingRequest();

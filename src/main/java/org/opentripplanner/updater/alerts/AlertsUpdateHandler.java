@@ -15,9 +15,9 @@ package org.opentripplanner.updater.alerts;
 
 import com.google.transit.realtime.GtfsRealtime;
 import com.google.transit.realtime.GtfsRealtime.*;
-import org.onebusaway2.gtfs.model.AgencyAndId;
-import org.onebusaway2.gtfs.model.Route;
-import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.Route;
+import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.routing.alertpatch.Alert;
 import org.opentripplanner.routing.alertpatch.AlertPatch;
 import org.opentripplanner.routing.alertpatch.TimePeriod;

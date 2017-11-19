@@ -14,9 +14,9 @@
 package org.opentripplanner.routing.edgetype;
 
 import com.vividsolutions.jts.geom.LineString;
-import org.onebusaway2.gtfs.model.Stop;
-import org.onebusaway2.gtfs.model.Trip;
-import org.onebusaway2.gtfs.model.calendar.ServiceDate;
+import org.opentripplanner.model.Stop;
+import org.opentripplanner.model.Trip;
+import org.opentripplanner.model.calendar.ServiceDate;
 import org.opentripplanner.routing.core.*;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.opentripplanner.routing.vertextype.PatternStopVertex;
