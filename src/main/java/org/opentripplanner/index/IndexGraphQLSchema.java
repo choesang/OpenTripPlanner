@@ -25,6 +25,7 @@ import graphql.schema.GraphQLTypeReference;
 import graphql.schema.TypeResolver;
 import org.opentripplanner.model.Agency;
 import org.opentripplanner.model.AgencyAndId;
+import org.opentripplanner.model.Notice;
 import org.opentripplanner.model.Route;
 import org.opentripplanner.model.Stop;
 import org.opentripplanner.model.Trip;
@@ -153,6 +154,8 @@ public class IndexGraphQLSchema {
 
     private final GtfsRealtimeFuzzyTripMatcher fuzzyTripMatcher;
 
+    public GraphQLOutputType noticeType = new GraphQLTypeReference("Notice");
+
     public GraphQLOutputType agencyType = new GraphQLTypeReference("Agency");
 
     public GraphQLOutputType alertType = new GraphQLTypeReference("Alert");
@@ -238,6 +241,9 @@ public class IndexGraphQLSchema {
             }
             if (o instanceof PlaceAndDistance) {
                 return (GraphQLObjectType) placeAtDistanceType;
+            }
+            if (o instanceof Notice) {
+                return (GraphQLObjectType) noticeType;
             }
             return null;
         }
@@ -626,6 +632,28 @@ public class IndexGraphQLSchema {
 
         fuzzyTripMatcher = new GtfsRealtimeFuzzyTripMatcher(index);
         index.clusterStopsAsNeeded();
+
+        noticeType = GraphQLObjectType.newObject()
+                .name("Notice")
+                .field(GraphQLFieldDefinition.newFieldDefinition()
+                        .name("Id")
+                        .type(Scalars.GraphQLString)
+                        .dataFetcher(
+                                environment -> ((Notice) environment.getSource()).getId())
+                        .build())
+                .field(GraphQLFieldDefinition.newFieldDefinition()
+                        .name("Text")
+                        .type(Scalars.GraphQLString)
+                        .dataFetcher(
+                                environment -> ((Notice) environment.getSource()).getText())
+                        .build())
+                .field(GraphQLFieldDefinition.newFieldDefinition()
+                        .name("PublicCode")
+                        .type(Scalars.GraphQLString)
+                        .dataFetcher(
+                                environment -> ((Notice) environment.getSource()).getPublicCode())
+                        .build())
+                .build();
 
         translatedStringType = GraphQLObjectType.newObject()
             .name("TranslatedString")
@@ -1328,6 +1356,18 @@ public class IndexGraphQLSchema {
               	.type(Scalars.GraphQLString)
               	.dataFetcher(environment -> ((TripTimeShort) environment.getSource()).headsign)
               	.build())
+            .field(GraphQLFieldDefinition.newFieldDefinition()
+                    .name("notices")
+                    .type(new GraphQLList(noticeType))
+                    .argument(GraphQLArgument.newArgument()
+                            .name("gtfsId")
+                            .type(Scalars.GraphQLString)
+                            .build())
+                    .dataFetcher(environment -> {
+                        TripTimeShort tripTimeShort = (TripTimeShort) environment.getSource();
+                        return index.getNoticesForElement(tripTimeShort.stopTimeId);
+                    })
+                    .build())
             .build();
 
         tripType = GraphQLObjectType.newObject()
@@ -1468,6 +1508,18 @@ public class IndexGraphQLSchema {
                 })
                 .build())
             .field(GraphQLFieldDefinition.newFieldDefinition()
+                    .name("notices")
+                    .type(new GraphQLList(noticeType))
+                    .argument(GraphQLArgument.newArgument()
+                            .name("gtfsId")
+                            .type(Scalars.GraphQLString)
+                            .build())
+                    .dataFetcher(environment -> {
+                        Trip trip = (Trip) environment.getSource();
+                        return index.getNoticesForElement(trip.getId());
+                    })
+                    .build())
+            .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("geometry")
                 .type(new GraphQLList(new GraphQLList(Scalars.GraphQLFloat))) //TODO: Should be geometry
                 .dataFetcher(environment -> {
@@ -1596,6 +1648,18 @@ public class IndexGraphQLSchema {
                 .dataFetcher(dataFetchingEnvironment -> index.getAlertsForPattern(
                     dataFetchingEnvironment.getSource()))
                 .build())
+            .field(GraphQLFieldDefinition.newFieldDefinition()
+                    .name("notices")
+                    .type(new GraphQLList(noticeType))
+                    .argument(GraphQLArgument.newArgument()
+                            .name("gtfsId")
+                            .type(Scalars.GraphQLString)
+                            .build())
+                    .dataFetcher(environment -> {
+                        TripPattern tripPattern = (TripPattern) environment.getSource();
+                        return index.getNoticesForElement(tripPattern.id);
+                    })
+                    .build())
             .build();
 
 
@@ -2009,6 +2073,14 @@ public class IndexGraphQLSchema {
                 .type(new GraphQLList(agencyType))
                 .dataFetcher(environment -> new ArrayList<>(index.getAllAgencies()))
                 .build())
+            .field(GraphQLFieldDefinition.newFieldDefinition()
+                    .name("notices")
+                    .type(new GraphQLList(noticeType))
+                    .dataFetcher(environment -> {
+                        Trip trip = (Trip) environment.getSource();
+                        return index.getNoticeMap().values();
+                    })
+                    .build())
             .field(GraphQLFieldDefinition.newFieldDefinition()
                 .name("agency")
                 .description("Get a single agency based on agency ID")

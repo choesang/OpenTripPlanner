@@ -48,6 +48,8 @@ import org.opentripplanner.graph_builder.annotation.NonStationParentStation;
 import org.opentripplanner.graph_builder.module.GtfsFeedId;
 import org.opentripplanner.gtfs.GtfsContext;
 import org.opentripplanner.gtfs.GtfsLibrary;
+import org.opentripplanner.model.Notice;
+import org.opentripplanner.model.NoticeAssignment;
 import org.opentripplanner.routing.core.StopTransfer;
 import org.opentripplanner.routing.core.TransferTable;
 import org.opentripplanner.routing.core.TraverseMode;
@@ -422,6 +424,17 @@ public class PatternHopFactory {
         // it is already done at deserialization, but standalone mode allows using graphs without serializing them.
         for (TripPattern tableTripPattern : tripPatterns) {
             tableTripPattern.scheduledTimetable.finish();
+        }
+
+        graph.setNoticeMap(_dao.getNoticeById());
+        for (NoticeAssignment noticeAssignment : _dao.getNoticeAssignmentById().values()) {
+            Notice notice = _dao.getNoticeById().get(noticeAssignment.getNoticeId());
+            if (graph.getNoticeAssignmentMap().containsKey(noticeAssignment.getElementId())) {
+                graph.getNoticeAssignmentMap().get(noticeAssignment.getElementId()).add(notice);
+            } else {
+                graph.getNoticeAssignmentMap()
+                        .put(noticeAssignment.getElementId(), new ArrayList(Arrays.asList(notice)));
+            }
         }
         
         clearCachedData(); // eh?

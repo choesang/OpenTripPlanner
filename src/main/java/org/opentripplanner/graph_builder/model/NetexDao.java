@@ -7,6 +7,8 @@ import org.rutebanken.netex.model.DayType;
 import org.rutebanken.netex.model.DayTypeAssignment;
 import org.rutebanken.netex.model.JourneyPattern;
 import org.rutebanken.netex.model.Line;
+import org.rutebanken.netex.model.Notice;
+import org.rutebanken.netex.model.NoticeAssignment;
 import org.rutebanken.netex.model.OperatingPeriod;
 import org.rutebanken.netex.model.Operator;
 import org.rutebanken.netex.model.Quay;
@@ -38,9 +40,13 @@ public class NetexDao {
     private final Map<String, String> authoritiesByGroupOfLinesId = new HashMap<>();
     private final Map<String, String> authoritiesByNetworkId = new HashMap<>();
     private final Map<String, String> serviceIds = new HashMap<>();
+    private final Map<String, Notice> noticeMap = new HashMap<>();
+    private final Map<String, NoticeAssignment> noticeAssignmentMap = new HashMap<>();
     private final Multimap<String, StopPlace> stopsById = ArrayListMultimap.create();
     private final Map<String, Quay> quayById = new HashMap<>();
     private final Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
+    private Map<String, JourneyPattern> journeyPatternByStopPointId = new HashMap<>();
+    private final Map<String, ServiceJourneyInterchange> interchanges = new HashMap<>();
     private String timeZone;
 
     public Map<String, StopPlace> getParentStopPlaceById() {
@@ -65,6 +71,10 @@ public class NetexDao {
 
     public Map<String, Quay> getQuayById() {
         return quayById;
+    }
+
+    public Map<String, JourneyPattern> getJourneyPatternByStopPointId() {
+        return journeyPatternByStopPointId;
     }
 
     public Map<String, Boolean> getDayTypeAvailable() {
@@ -135,7 +145,19 @@ public class NetexDao {
         return stopPointQuayMap;
     }
 
+    public Map<String, ServiceJourneyInterchange> getInterchanges() {
+        return interchanges;
+    }
+
     public Map<String, StopPlace> getMultimodalStopPlaceById() {
         return multimodalStopPlaceById;
+    }
+
+    public Map<String, Notice> getNoticeMap() {
+        return noticeMap;
+    }
+
+    public Map<String, NoticeAssignment> getNoticeAssignmentMap() {
+        return noticeAssignmentMap;
     }
 }
