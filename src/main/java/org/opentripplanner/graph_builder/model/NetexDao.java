@@ -19,6 +19,10 @@ import java.util.*;
 
 public class NetexDao {
 
+    private final Map<String, StopPlace> stopPlaceMap = new HashMap<>();
+    private final Map<String, StopPlace> parentStopPlaceById = new HashMap<>();
+    private final Map<String, StopPlace> multimodalStopPlaceById = new HashMap<>();
+    private final Map<String, Quay> quayMap = new HashMap<>();
     private final Map<String, String> stopPointStopPlaceMap = new HashMap<>();
     private final Map<String, String> stopPointQuayMap = new HashMap<>();
     private final Map<String, JourneyPattern> journeyPatternsById = new HashMap<>();
@@ -38,6 +42,18 @@ public class NetexDao {
     private final Map<String, Quay> quayById = new HashMap<>();
     private final Map<Quay, StopPlace> stopPlaceByQuay = new HashMap<>();
     private String timeZone;
+
+    public Map<String, StopPlace> getParentStopPlaceById() {
+        return parentStopPlaceById;
+    }
+
+    public Map<String, StopPlace> getStopPlaceMap() {
+        return stopPlaceMap;
+    }
+
+    public Map<String, Quay> getQuayMap() {
+        return quayMap;
+    }
 
     public Map<Quay, StopPlace> getStopPlaceByQuay() {
         return stopPlaceByQuay;
@@ -117,5 +133,9 @@ public class NetexDao {
 
     public Map<String, String> getStopPointQuayMap() {
         return stopPointQuayMap;
+    }
+
+    public Map<String, StopPlace> getMultimodalStopPlaceById() {
+        return multimodalStopPlaceById;
     }
 }

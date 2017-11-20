@@ -78,6 +78,9 @@ public class NetexModule implements GraphBuilderModule {
                 if (netexBundle.linkStopsToParentStations) {
                     hf.linkStopsToParentStations(graph);
                 }
+                if (netexBundle.linkMultiModalStopsToParentStations) {
+                    hf.linkMultiModalStops(graph);
+                }
                 if (netexBundle.parentStationTransfers) {
                     hf.createParentStationTransfers();
                 }
@@ -186,14 +189,21 @@ public class NetexModule implements GraphBuilderModule {
             StopPlacesInFrame_RelStructure stopPlaces = sf.getStopPlaces();
             List<StopPlace> stopPlaceList = stopPlaces.getStopPlace();
             for (StopPlace stopPlace : stopPlaceList) {
-                netexDao.getStopsById().put(stopPlace.getId(), stopPlace);
-                if (stopPlace.getQuays() != null) {
-                    List<Object> quayRefOrQuay = stopPlace.getQuays().getQuayRefOrQuay();
-                    for (Object quayObject : quayRefOrQuay) {
-                        if (quayObject instanceof Quay) {
-                            Quay quay = (Quay) quayObject;
-                            netexDao.getQuayById().put(quay.getId(), quay);
-                            netexDao.getStopPlaceByQuay().put(quay, stopPlace);
+                if (stopPlace.getKeyList().getKeyValue().stream().anyMatch(keyValueStructure ->
+                        keyValueStructure.getKey().equals("IS_PARENT_STOP_PLACE") && keyValueStructure.getValue().equals("true"))) {
+                    netexDao.getMultimodalStopPlaceById().put(stopPlace.getId(), stopPlace);
+                } else {
+                    netexDao.getStopsById().put(stopPlace.getId(), stopPlace);
+                    if (stopPlace.getQuays() == null) {
+                        LOG.warn(stopPlace.getId() + " does not contain any quays");
+                    } else {
+                        List<Object> quayRefOrQuay = stopPlace.getQuays().getQuayRefOrQuay();
+                        for (Object quayObject : quayRefOrQuay) {
+                            if (quayObject instanceof Quay) {
+                                Quay quay = (Quay) quayObject;
+                                netexDao.getQuayById().put(quay.getId(), quay);
+                                netexDao.getStopPlaceByQuay().put(quay, stopPlace);
+                            }
                         }
                     }
                 }

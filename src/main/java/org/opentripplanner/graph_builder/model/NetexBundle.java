@@ -20,7 +20,9 @@ public class NetexBundle {
 
     public final boolean linkStopsToParentStations;
 
-    public final boolean parentStationTransfers;
+    public final boolean linkMultiModalStopsToParentStations;
+
+    public boolean parentStationTransfers = false;
 
     public final int subwayAccessTime;
 
@@ -32,6 +34,7 @@ public class NetexBundle {
         this.file = netexZipFile;
         this.linkStopsToParentStations = builderParams.parentStopLinking;
         this.parentStationTransfers = builderParams.stationTransfers;
+        this.linkMultiModalStopsToParentStations = builderParams.linkMultiModalStopsToParentStations;
         this.subwayAccessTime = (int)(builderParams.subwayAccessTime * 60);
         this.maxInterlineDistance = builderParams.maxInterlineDistance;
         this.netexParameters = builderParams.netex;

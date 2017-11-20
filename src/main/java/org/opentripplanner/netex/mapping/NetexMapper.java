@@ -50,10 +50,18 @@ public class NetexMapper {
             }
         }
 
+        for (StopPlace stopPlace : netexDao.getMultimodalStopPlaceById().values()) {
+            if (stopPlace != null) {
+                Stop stop = stopMapper.mapMultiModalStop(stopPlace);
+                transitBuilder.getMultiModalStops().add(stop);
+                transitBuilder.getStops().add(stop);
+            }
+        }
+
         for (String stopPlaceId : netexDao.getStopsById().keySet()) {
             Collection<StopPlace> stopPlaceAllVersions = netexDao.getStopsById().get(stopPlaceId);
             if (stopPlaceAllVersions != null) {
-                Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlaceAllVersions);
+                Collection<Stop> stops = stopMapper.mapParentAndChildStops(stopPlaceAllVersions, transitBuilder);
                 for (Stop stop : stops) {
                     transitBuilder.getStops().add(stop);
                 }
