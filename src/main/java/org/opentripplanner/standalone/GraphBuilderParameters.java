@@ -216,7 +216,7 @@ public class GraphBuilderParameters {
         maxTransferDistance = config.path("maxTransferDistance").asDouble(2000);
         extraEdgesStopPlatformLink = config.path("extraEdgesStopPlatformLink").asBoolean(false);
         netex = new NetexParameters(config.path("netex"));
-        linkMultiModalStopsToParentStations = config.path("maxTransferDistance").asBoolean(false);
+        linkMultiModalStopsToParentStations = config.path("linkMultiModalStopsToParentStations").asBoolean(false);
     }
 
 }
