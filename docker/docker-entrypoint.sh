@@ -4,13 +4,14 @@
 : ${FILE_TMP_PATH="/tmp/graph_obj_from_gcs"}
 # Notice ending slash here, it is correct
 : ${MARDUK_GCP_BASE="gs://marduk/"}
+: ${GRAPH_POINTER_FILE="graphs/current-otp2"}
 
 echo "GRAPH_FILE_TARGET_PATH: $GRAPH_FILE_TARGET_PATH"
 
 echo "Activating marduk blobstore service account"
 /code/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file /etc/marduk/marduk-blobstore-credentials.json
 
-FILENAME=$(/code/google-cloud-sdk/bin/gsutil cat ${MARDUK_GCP_BASE}graphs/current-otp2)
+FILENAME=$(/code/google-cloud-sdk/bin/gsutil cat ${MARDUK_GCP_BASE}${GRAPH_POINTER_FILE})
 
 DOWNLOAD="${MARDUK_GCP_BASE}${FILENAME}"
 echo "Downloading $DOWNLOAD"
