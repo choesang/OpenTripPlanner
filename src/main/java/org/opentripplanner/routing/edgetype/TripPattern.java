@@ -121,7 +121,7 @@ public class TripPattern implements Cloneable, Serializable {
     /**
      * Geometries of each inter-stop segment of the tripPattern.
      */
-    public List<int[]> hopGeometries = null;
+    private int[][] hopGeometries = null;
 
 
     public LineString getHopGeometry(int stopIndex) {
@@ -134,7 +134,7 @@ public class TripPattern implements Cloneable, Serializable {
                     transitStopStart.getY(),
                     transitStopEnd.getX(),
                     transitStopEnd.getY(),
-                    hopGeometries.get(stopIndex),
+                    hopGeometries[stopIndex],
                     false
             );
         } else {
@@ -147,38 +147,44 @@ public class TripPattern implements Cloneable, Serializable {
     }
 
     public void setHopGeometries(LineString[] hopGeometries) {
-        List<int[]> compactGeometries = new ArrayList<>();
+        this.hopGeometries = new int[hopGeometries.length][];
 
         for (int i = 0; i < hopGeometries.length; i++) {
-            TransitStop transitStopStart = stopVertices[i];
-            TransitStop transitStopEnd = stopVertices[i + 1];
-
-            LineString lineString = GeometryUtils.addStartEndCoordinatesToLineString(
-                    transitStopStart.getCoordinate(),
-                    hopGeometries[i],
-                    transitStopEnd.getCoordinate());
-
-            int[] compactCoordinates = CompactLineString.compactLineString(
-                    transitStopStart.getX(),
-                    transitStopStart.getY(),
-                    transitStopEnd.getX(),
-                    transitStopEnd.getY(),
-                    lineString,
-                    false
-            );
-
-            compactGeometries.add(compactCoordinates);
+            setHopGeometry(i, hopGeometries[i]);
         }
+    }
 
-        this.hopGeometries = compactGeometries;
+    public void setHopGeometry(int i, LineString hopGeometry) {
+        TransitStop transitStopStart = stopVertices[i];
+        TransitStop transitStopEnd = stopVertices[i + 1];
+
+        LineString lineString = GeometryUtils.addStartEndCoordinatesToLineString(
+                transitStopStart.getCoordinate(),
+                hopGeometry,
+                transitStopEnd.getCoordinate());
+
+        int[] compactCoordinates = CompactLineString.compactLineString(
+                transitStopStart.getX(),
+                transitStopStart.getY(),
+                transitStopEnd.getX(),
+                transitStopEnd.getY(),
+                lineString,
+                false
+        );
+
+        this.hopGeometries[i] = compactCoordinates;
     }
 
     public LineString getGeometry() {
         List<LineString> lineStrings = new ArrayList<>();
-        for (int i = 0; i < hopGeometries.size() - 1; i++) {
+        for (int i = 0; i < hopGeometries.length - 1; i++) {
             lineStrings.add(getHopGeometry(i));
         }
         return GeometryUtils.concatenateLineStrings(lineStrings);
+    }
+
+    public int numHopGeometries() {
+        return hopGeometries.length;
     }
 
     /** Holds stop-specific information such as wheelchair accessibility and pickup/dropoff roles. */
