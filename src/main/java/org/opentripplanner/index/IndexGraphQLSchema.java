@@ -605,7 +605,7 @@ public class IndexGraphQLSchema {
                 .name("geometry")
                 .type(Scalars.GraphQLString) //TODO: Should be geometry
                 .dataFetcher(environment -> index.patternForTrip
-                    .get((Trip) environment.getSource()).geometry.getCoordinateSequence())
+                    .get((Trip) environment.getSource()).getGeometry())
                 .build())
             .build();
 
@@ -671,7 +671,7 @@ public class IndexGraphQLSchema {
                 .name("geometry")
                 .type(new GraphQLList(coordinateType))
                 .dataFetcher(environment -> {
-                    LineString geometry = ((TripPattern) environment.getSource()).geometry;
+                    LineString geometry = ((TripPattern) environment.getSource()).getGeometry();
                     if (geometry == null) {
                         return null;
                     } else {
