@@ -215,6 +215,8 @@ class OtpTransitServiceImpl implements OtpTransitService {
         List<T> list;
         if (c instanceof List) {
             list = (List<T>) c;
+        } else if (c == null) {
+            list = new ArrayList<>();
         } else {
             list = new ArrayList<>(c);
         }
