@@ -25,7 +25,7 @@ import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.trippattern.FrequencyEntry;
 import org.opentripplanner.routing.trippattern.TripTimes;
-import org.opentripplanner.routing.vertextype.*;
+import org.opentripplanner.routing.vertextype.TransitStop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +34,13 @@ import javax.xml.bind.annotation.XmlTransient;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents a group of trips on a route, with the same direction id that all call at the same
@@ -45,6 +51,9 @@ import java.util.*;
  *
  * This is called a JOURNEY_PATTERN in the Transmodel vocabulary. However, GTFS calls a Transmodel JOURNEY a "trip",
  * thus TripPattern.
+ *
+ *  TODO OTP2 - Move this to package: org.opentripplanner.model
+ *  TODO OTP2 - after ass Entur NeTEx PRs are merged.
  */
 public class TripPattern implements Cloneable, Serializable {
 
@@ -52,13 +61,13 @@ public class TripPattern implements Cloneable, Serializable {
 
     private static final long serialVersionUID = MavenVersion.VERSION.getUID();
 
-    public static final int FLAG_WHEELCHAIR_ACCESSIBLE = 1;
-    public static final int MASK_PICKUP = 2|4;
-    public static final int SHIFT_PICKUP = 1;
-    public static final int MASK_DROPOFF = 8|16;
-    public static final int SHIFT_DROPOFF = 3;
-    public static final int NO_PICKUP = 1;
-    public static final int FLAG_BIKES_ALLOWED = 32;
+    private static final int FLAG_WHEELCHAIR_ACCESSIBLE = 1;
+    private static final int MASK_PICKUP = 2|4;
+    private static final int SHIFT_PICKUP = 1;
+    private static final int MASK_DROPOFF = 8|16;
+    private static final int SHIFT_DROPOFF = 3;
+    private static final int NO_PICKUP = 1;
+    //private static final int FLAG_BIKES_ALLOWED = 32;
 
     /**
      * The GTFS Route of all trips in this pattern.
@@ -107,6 +116,8 @@ public class TripPattern implements Cloneable, Serializable {
      * The vertices in the Graph that correspond to each Stop in this pattern.
      * Note: these are not unique to this pattern, and could be shared in the stop.
      * FIXME they appear to be all null. are they even used?
+     * TODO OTP2 - This is not used and can be removed. It is initialized in the
+     * TODO OTP2 - PatternHopFactory, but never accessed after that.
      */
     public final TransitStop[] stopVertices;
 
@@ -642,5 +653,4 @@ public class TripPattern implements Cloneable, Serializable {
         // The feed id is the same as the agency id on the route, this allows us to obtain it from there.
         return route.getId().getAgencyId();
     }
-
 }

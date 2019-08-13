@@ -3,8 +3,6 @@ package org.opentripplanner.routing.edgetype.factory;
 import com.beust.jcommander.internal.Maps;
 import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import org.apache.commons.math3.util.FastMath;
@@ -53,7 +51,6 @@ import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.impl.DefaultFareServiceFactory;
 import org.opentripplanner.routing.services.FareService;
 import org.opentripplanner.routing.services.FareServiceFactory;
-import org.opentripplanner.routing.services.OnBoardDepartService;
 import org.opentripplanner.routing.trippattern.TripTimes;
 import org.opentripplanner.routing.vertextype.TransitStation;
 import org.opentripplanner.routing.vertextype.TransitStationStop;
@@ -76,6 +73,9 @@ import java.util.Map;
 
 /**
  * Generates a set of edges from GTFS.
+ *
+ * TODO OTP2 - Move this to package: org.opentripplanner.gtfs
+ * TODO OTP2 - after ass Entur NeTEx PRs are merged.
  */
 public class PatternHopFactory {
 
@@ -187,7 +187,7 @@ public class PatternHopFactory {
 
         /* Loop over all new TripPatterns setting the service codes and geometries, etc. */
         for (TripPattern tripPattern : tripPatterns) {
-            // Store the stop vertex corresponding to each GTFS stop entity in the pattern.
+             // Store the stop vertex corresponding to each GTFS stop entity in the pattern.
             for (int s = 0; s < tripPattern.stopVertices.length; s++) {
                 Stop stop = tripPattern.stopPattern.stops[s];
                 tripPattern.stopVertices[s] = ((TransitStop) stationStopNodes.get(stop));
