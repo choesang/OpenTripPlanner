@@ -3317,7 +3317,7 @@ public class TransmodelIndexGraphQLSchema {
                                 .findFirst()
                                 .orElse(null))
                         .build())
-                /*
+
                 .field(GraphQLFieldDefinition.newFieldDefinition()
                         .name("bikeRentalStationsByBbox")
                         .description("Get all bike rental stations within the specified bounding box.")
@@ -3338,18 +3338,11 @@ public class TransmodelIndexGraphQLSchema {
                                 .name("maximumLongitude")
                                 .type(Scalars.GraphQLFloat)
                                 .build())
-                        .dataFetcher(environment -> index.graph.streetIndex
-                                .getBikeRentalStationForEnvelope(new Envelope(
-                                        new Coordinate(environment.getArgument("minimumLongitude"),
-                                                environment.getArgument("minimumLatitude")),
-                                        new Coordinate(environment.getArgument("maximumLongitude"),
-                                                environment.getArgument("maximumLatitude")))).stream()
-                                        .map(b -> b.getStation())
-                                        .sorted((s1, s2) -> s1.getName().toString().compareTo(s2.getName().toString()))
-                                        .collect(Collectors.toList())
+                        .dataFetcher(environment -> new ArrayList<>()
+                                // TODO Implement bikeRentalStationsByBbox
                                 )
                         .build())
-                 */
+
                 .field(GraphQLFieldDefinition.newFieldDefinition()
                         .name("bikePark")
                         .description("Get a single bike park based on its id")
