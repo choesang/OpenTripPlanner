@@ -4,6 +4,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import gnu.trove.set.TIntSet;
 import gnu.trove.set.hash.TIntHashSet;
+import org.joda.time.DateTime;
 import org.opentripplanner.model.CalendarService;
 import org.opentripplanner.model.FeedScopedId;
 import org.opentripplanner.model.calendar.ServiceDate;
@@ -98,7 +99,11 @@ public class TransitLayerMapper {
         for (FeedScopedId serviceId : calendarService.getServiceIds()) {
             Set<ServiceDate> serviceDatesForService = calendarService.getServiceDatesForServiceId(serviceId);
             for (ServiceDate serviceDate : serviceDatesForService) {
-                serviceIdsForServiceDate.put(serviceDate, serviceId);
+                // TODO Only get first 30 days
+                if (serviceDate.getAsDate().after(DateTime.now().minusDays(2).toDate())
+                        && serviceDate.getAsDate().before(DateTime.now().plusDays(30).toDate())) {
+                    serviceIdsForServiceDate.put(serviceDate, serviceId);
+                }
             }
         }
 
