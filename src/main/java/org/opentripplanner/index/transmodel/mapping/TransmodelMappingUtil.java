@@ -2,7 +2,6 @@ package org.opentripplanner.index.transmodel.mapping;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.index.transmodel.model.TransmodelPlaceType;
 import org.opentripplanner.model.FeedScopedId;
@@ -54,6 +53,7 @@ public class TransmodelMappingUtil {
     /**
      * Add agency id prefix to vertexIds if fixed agency is set.
      */
+    /* TODO OTP2
     public String preparePlaceRef(String input) {
         if (fixedAgencyId != null && input != null) {
             GenericLocation location = GenericLocation.fromOldStyleString(input);
@@ -66,6 +66,7 @@ public class TransmodelMappingUtil {
         }
         return input;
     }
+     */
 
     public String prepareListOfFeedScopedId(List<String> ids) {
         return mapCollectionOfValues(ids, this::prepareFeedScopedId);

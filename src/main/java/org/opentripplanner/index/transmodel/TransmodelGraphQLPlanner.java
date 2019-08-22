@@ -155,7 +155,7 @@ public class TransmodelGraphQLPlanner {
             lon = (Double) coordinates.get("longitude");
         }
 
-        String placeRef = mappingUtil.preparePlaceRef((String) m.get("place"));
+        String placeRef = (String) m.get("place"); // TODO OTP2 mappingUtil.preparePlaceRef((String) m.get("place"));
         String name = (String) m.get("name");
         name = name == null ? "" : name;
 
