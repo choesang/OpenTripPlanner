@@ -1527,6 +1527,11 @@ public class TransmodelIndexGraphQLSchema {
                                 .description("Parameters for indicating the only authorities and/or lines or quays to list estimatedCalls for")
                                 .type(whiteListedInputType)
                                 .build())
+                        .argument(GraphQLArgument.newArgument()
+                                .name("whiteListedModes")
+                                .description("Only show estimated calls for selected modes.")
+                                .type(GraphQLList.list(modeEnum))
+                                .build())
                         .dataFetcher(environment -> {
                             boolean omitNonBoarding = environment.getArgument("omitNonBoarding");
                             int numberOfDepartures = environment.getArgument("numberOfDepartures");
@@ -1686,6 +1691,11 @@ public class TransmodelIndexGraphQLSchema {
                                 .description("Whitelisted")
                                 .description("Parameters for indicating the only authorities and/or lines or quays to list estimatedCalls for")
                                 .type(whiteListedInputType)
+                                .build())
+                        .argument(GraphQLArgument.newArgument()
+                                .name("whiteListedModes")
+                                .description("Only show estimated calls for selected modes.")
+                                .type(GraphQLList.list(modeEnum))
                                 .build())
                         .dataFetcher(environment -> {
                             boolean omitNonBoarding = environment.getArgument("omitNonBoarding");
