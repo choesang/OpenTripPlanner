@@ -26,7 +26,7 @@ public abstract class StreetVertex extends Vertex {
     }
 
     public StreetVertex(Graph g, String label, double x, double y, I18NString streetName) {
-        super(g, label, x, y, streetName);
+        super(g, label, x, y, new NonLocalizedString(""));
     }
 
     /**
