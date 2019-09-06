@@ -89,7 +89,7 @@ public class StreetEdge extends Edge implements Cloneable {
     private StreetTraversalPermission permission;
 
     /** The OSM way ID from whence this came - needed to reference traffic data */
-    //public long wayId;
+    public long wayId;
 
     private int streetClass = CLASS_OTHERPATH;
     
@@ -787,8 +787,8 @@ public class StreetEdge extends Edge implements Cloneable {
             e2 = new StreetEdge(v, (StreetVertex) tov, geoms.second, name, 0, permission, this.isBack());
 
             // copy the wayId to the split edges, so we can trace them back to their parent if need be
-            //e1.wayId = this.wayId;
-            //e2.wayId = this.wayId;
+            e1.wayId = this.wayId;
+            e2.wayId = this.wayId;
 
             // figure the lengths, ensuring that they sum to the length of this edge
             e1.calculateLengthFromGeometry();
@@ -813,11 +813,11 @@ public class StreetEdge extends Edge implements Cloneable {
 
             // TODO: better handle this temporary fix to handle bad edge distance calculation
             if (e1.length_mm < 0) {
-                LOG.error("Edge 1 ({}) split at vertex at {},{} has length {} mm. Setting to 1 mm.", "", v.getLat(), v.getLon(), e1.length_mm);
+                LOG.error("Edge 1 ({}) split at vertex at {},{} has length {} mm. Setting to 1 mm.", e1.wayId, v.getLat(), v.getLon(), e1.length_mm);
                 e1.length_mm = 1;
             }
             if (e2.length_mm < 0) {
-                LOG.error("Edge 2 ({}) split at vertex at {},{}  has length {} mm. Setting to 1 mm.", "", v.getLat(), v.getLon(), e2.length_mm);
+                LOG.error("Edge 2 ({}) split at vertex at {},{}  has length {} mm. Setting to 1 mm.", e2.wayId, v.getLat(), v.getLon(), e2.length_mm);
                 e2.length_mm = 1;
             }
 
@@ -856,7 +856,7 @@ public class StreetEdge extends Edge implements Cloneable {
      */
     public long getStartOsmNodeId () {
         if (fromv instanceof OsmVertex)
-            return 0;
+            return ((OsmVertex) fromv).nodeId;
         // get information from the splitter vertex so this edge gets the same traffic information it got before
         // it was split.
         else if (fromv instanceof SplitterVertex)
@@ -871,7 +871,7 @@ public class StreetEdge extends Edge implements Cloneable {
      */
     public long getEndOsmNodeId () {
         if (tov instanceof OsmVertex)
-            return 0;
+            return ((OsmVertex) tov).nodeId;
             // get information from the splitter vertex so this edge gets the same traffic information it got before
             // it was split.
         else if (tov instanceof SplitterVertex)
