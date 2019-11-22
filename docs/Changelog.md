@@ -12,6 +12,7 @@
 - Combined OSM loaders, removing several rarely used ones (#2878)
 - New Java Code Style (part of #2755)
 - Cleanup and rename Graph Builder Annotations, now Data Import Issues (#2871)
+- Refactor GenericLocation/AStar/RoutingContext to allow multiple start vertices (#2887) 
 
 ## Ported over from the 1.x
 - Add application/x-protobuf to accepted protobuf content-types (#2839)

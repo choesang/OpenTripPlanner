@@ -13,6 +13,7 @@ import org.opentripplanner.common.model.GenericLocation;
 import org.opentripplanner.common.model.P2;
 import org.opentripplanner.graph_builder.DataImportIssueStore;
 import org.opentripplanner.graph_builder.linking.SimpleStreetSplitter;
+import org.opentripplanner.model.StopCollection;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.edgetype.*;
 import org.opentripplanner.routing.graph.Edge;
@@ -305,26 +306,33 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
         }
         return nearest;
     }
-    
+
+    /**
+     * Gets a set of vertices corresponding to the location provided. It first tries to match a
+     * Stop/StopCollection by id, and if not successful it uses the coordinates if provided.
+     */
     @Override
-    public Vertex getVertexForLocation(GenericLocation loc, RoutingRequest options,
-                                       boolean endVertex) {
-        Coordinate c = loc.getCoordinate();
-        if (c != null) {
+    public Set<Vertex> getVerticesForLocation(
+            GenericLocation location,
+            RoutingRequest options,
+            boolean endVertex
+    ) {
+        // Check if Stop/StopCollection is found by FeedScopeId
+        Set<Vertex> transitStopVertices =
+                graph.index.getStopVerticesById(location.placeId);
+        if (transitStopVertices != null) {
+            return transitStopVertices;
+        }
+
+        // Check if coordinate is provided and connect it to graph
+        Coordinate coordinate = location.getCoordinate();
+        if (coordinate != null) {
             //return getClosestVertex(loc, options, endVertex);
-            return simpleStreetSplitter.getClosestVertex(loc, options, endVertex);
+            return Collections.singleton(
+                    simpleStreetSplitter.getClosestVertex(location, options, endVertex));
         }
 
-        // No Coordinate available.
-        String place = loc.place;
-        if (place == null) {
-            return null;
-        }
-
-        // did not match lat/lon, interpret place as a vertex label.
-        // this should probably only be used in tests,
-        // though it does allow routing from stop to stop.
-        return graph.getVertex(place);
+        return null;
     }
 
     @Override
@@ -332,4 +340,19 @@ public class StreetVertexIndexServiceImpl implements StreetVertexIndexService {
         return getClass().getName() + " -- edgeTree: " + edgeTree.toString() + " -- verticesTree: " + verticesTree.toString();
     }
 
+    @Override
+    public Vertex getVertexForLocation(
+            GenericLocation location,
+            RoutingRequest options,
+            boolean endVertex
+    ) {
+        // Check if coordinate is provided and connect it to graph
+        Coordinate coordinate = location.getCoordinate();
+        if (coordinate != null) {
+            //return getClosestVertex(loc, options, endVertex);
+            return simpleStreetSplitter.getClosestVertex(location, options, endVertex);
+        }
+
+        return null;
+    }
 }
