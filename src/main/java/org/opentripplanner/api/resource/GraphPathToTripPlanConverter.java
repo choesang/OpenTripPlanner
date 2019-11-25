@@ -859,6 +859,7 @@ public abstract class GraphPathToTripPlanConverter {
                 makeCalendar(state), makeCalendar(state));
 
         if (vertex instanceof TransitStopVertex) {
+            place.name = stop.getName();
             place.stopId = stop.getId();
             place.stopCode = stop.getCode();
             place.platformCode = stop.getCode();
