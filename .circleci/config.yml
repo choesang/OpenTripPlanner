@@ -50,7 +50,7 @@ jobs:
           paths:
             - ~/.m2
           key: dep-cache-{{ checksum "pom.xml" }}
-      - run: mvn deploy -s /tools/m2/settings.xml -DskipTests -Dgpg.skip -altDeploymentRepository=snapshotRepository::snapshots::https://entur2.jfrog.io/entur2/libs-snapshot-local
+      - run: mvn deploy -s /tools/m2/settings.xml -DskipTests -Dgpg.skip -DaltDeploymentRepository=snapshots::entur2-snapshots::https://entur2.jfrog.io/entur2/libs-snapshot-local
       - persist_to_workspace:
           root: ~/project
           paths:
