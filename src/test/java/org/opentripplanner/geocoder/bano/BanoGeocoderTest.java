@@ -1,6 +1,7 @@
 package org.opentripplanner.geocoder.bano;
 
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
@@ -18,6 +19,7 @@ public class BanoGeocoderTest {
      * if a network connection is not active or the server is down.
      */
     @Test
+    @Ignore
     public void testOnLine() throws IOException {
         assumeConnectedToInternet();
 
