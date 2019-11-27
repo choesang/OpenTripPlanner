@@ -878,7 +878,7 @@ public class TransmodelIndexGraphQLSchema {
                         .description("DEPRECATED - Use maxPreTransitWalkDistance/maxTransferWalkDistance instead. " +
                                 "The maximum distance (in meters) the user is willing to walk. Note that trip patterns with " +
                                 "longer walking distances will be penalized, but not altogether disallowed. Maximum allowed value is 15000 m")
-                        .defaultValue(3000)
+                        .defaultValue(3000.0)
                         .type(Scalars.GraphQLFloat)
                         .build())
                 .argument(GraphQLArgument.newArgument()
