@@ -30,7 +30,11 @@ jobs:
             - ~/.m2
           key: dep-cache-{{ checksum "pom.xml" }}
       - run: mvn install org.apache.maven.plugins:maven-deploy-plugin:2.8.2:deploy  -s /tools/m2/settings.xml -DskipTests -Dgpg.skip -DaltDeploymentRepository=snapshots::default::https://entur2.jfrog.io/entur2/libs-snapshot-local
+  trigger-dependants:
+    executor: cci-toolbox-java11
+    steps:
       - run: *post_build
+
 workflows:
   version: 2.1
   release:
@@ -44,3 +48,7 @@ workflows:
                 - entur_raptor
                 - rutebanken_develop
                 - otp2_entur_develop
+      - trigger-dependants:
+          context: dev
+          requires:
+            - build-release
