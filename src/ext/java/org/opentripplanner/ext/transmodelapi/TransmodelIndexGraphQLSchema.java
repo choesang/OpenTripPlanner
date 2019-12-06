@@ -2038,7 +2038,7 @@ public class TransmodelIndexGraphQLSchema {
                  */
                 .build();
 
-        serviceJourneyType = GraphQLObjectType.newObject()
+        serviceJourneyType =serviceJourneyType = GraphQLObjectType.newObject()
                 .name("ServiceJourney")
                 .description("A planned vehicle journey with passengers.")
                 .field(GraphQLFieldDefinition.newFieldDefinition()
