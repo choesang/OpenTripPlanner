@@ -61,7 +61,10 @@ public class RaptorTransitLayerGraphUpdater implements GraphUpdater {
                 // Only build a new layer if we got a different snapshot than last time through the loop.
                 if (timetableSnapshot.hashCode() != lastSnapshotHashCode) {
                     lastSnapshotHashCode = timetableSnapshot.hashCode();
+                    double startTime = System.currentTimeMillis();
                     final TransitLayer realtimeTransitLayer = TransitLayerMapper.map(graph);
+                    LOG.info("Mapping transitLayer took {} ms",
+                        System.currentTimeMillis() - startTime);
                     // Although this only performs one assign, it follows the updater convention of submitting a task.
                     updaterManager.execute(g -> g.realtimeTransitLayer = realtimeTransitLayer);
                 }
