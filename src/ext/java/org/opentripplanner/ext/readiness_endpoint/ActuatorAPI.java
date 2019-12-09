@@ -28,7 +28,7 @@ public class ActuatorAPI {
      * List the actuator endpoints available
      */
     @GET
-    @Path("")
+    @Path("/")
     public Response actuator() {
         return Response.status(Response.Status.OK).entity(
             "{\n"
