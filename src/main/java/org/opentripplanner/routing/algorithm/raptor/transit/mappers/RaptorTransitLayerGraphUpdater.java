@@ -32,6 +32,8 @@ public class RaptorTransitLayerGraphUpdater implements GraphUpdater {
 
     private int lastSnapshotHashCode = 0;
 
+    private boolean primed = false;
+
     @Override
     public void setGraphUpdaterManager (GraphUpdaterManager updaterManager) {
         this.updaterManager = updaterManager;
@@ -63,6 +65,7 @@ public class RaptorTransitLayerGraphUpdater implements GraphUpdater {
                     lastSnapshotHashCode = timetableSnapshot.hashCode();
                     double startTime = System.currentTimeMillis();
                     final TransitLayer realtimeTransitLayer = TransitLayerMapper.map(graph);
+                    primed = true;
                     LOG.info("Mapping transitLayer took {} ms",
                         System.currentTimeMillis() - startTime);
                     // Although this only performs one assign, it follows the updater convention of submitting a task.
@@ -80,4 +83,13 @@ public class RaptorTransitLayerGraphUpdater implements GraphUpdater {
         updateIntervalSeconds = jsonNode.get("updateIntervalSeconds").asInt(DEFAULT_INTERVAL_SECONDS);
     }
 
+    @Override
+    public boolean isPrimed() {
+        return primed;
+    }
+
+    @Override
+    public String getName() {
+        return "RaptorTransitLayerGraphUpdater";
+    }
 }
