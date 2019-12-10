@@ -85,7 +85,7 @@ public class RaptorTransitLayerGraphUpdater implements GraphUpdater {
 
     @Override
     public boolean isPrimed() {
-        return true;
+        return primed;
     }
 
     @Override
