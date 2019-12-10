@@ -15,8 +15,7 @@ aliases:
     command: |
       echo 'export CIRCLE_SHA1="$CIRCLE_SHA1"' >> $BASH_ENV
       echo 'export CIRCLE_PROJECT_REPONAME="$CIRCLE_PROJECT_REPONAME"' >> $BASH_ENV
-      echo 'export GITHUB_TOKEN="$GITHUB_TOKEN"' >> $BASH_ENV
-      /tools/trigger_build.sh "entur/otp-deployment-config.git" "master" "$(git log -1 --pretty=%B)"
+      /tools/trigger_build_v2.sh "entur/otp-deployment-config.git" "master" "$(git log -1 --pretty=%B)"
 jobs:
   build:
     executor: cci-toolbox-java11
