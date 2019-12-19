@@ -10,6 +10,8 @@ import org.opentripplanner.routing.algorithm.raptor.transit.TripSchedule;
 import org.opentripplanner.routing.algorithm.raptor.transit.TripScheduleWrapperImpl;
 import org.opentripplanner.routing.trippattern.RealTimeState;
 import org.opentripplanner.routing.trippattern.TripTimes;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,7 +22,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TransitLayerUpdater {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TransitLayerUpdater.class);
+
   public static void update(Set<Timetable> updatedTimetables, TransitLayer transitLayer ) {
+
+    double startTime = System.currentTimeMillis();
 
     @SuppressWarnings("ConstantConditions")
     Multimap<LocalDate, Timetable> timetablesByDate = Multimaps.index(updatedTimetables,
@@ -72,5 +79,8 @@ public class TransitLayerUpdater {
           new ArrayList<>(patternsForDateMap.values())
       );
     }
+
+    LOG.info("Updating {} timetables to TransitLayer took {} ms", updatedTimetables.size(),
+        System.currentTimeMillis() - startTime);
   }
 }
