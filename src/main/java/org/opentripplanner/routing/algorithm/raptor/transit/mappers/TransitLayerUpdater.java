@@ -67,7 +67,10 @@ public class TransitLayerUpdater {
         patternsForDateMap.put(timetable.pattern, tripPatternForDate);
       }
 
-      transitLayer.replaceTripPatternsForDate(date, patternsForDate);
+      transitLayer.replaceTripPatternsForDate(
+          date,
+          new ArrayList<>(patternsForDateMap.values())
+      );
     }
   }
 }
