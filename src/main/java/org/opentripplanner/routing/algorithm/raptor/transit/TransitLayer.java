@@ -65,7 +65,8 @@ public class TransitLayer {
     }
 
     public List<TripPatternForDate> getTripPatternsForDateCopy(LocalDate date) {
-        return new ArrayList<>(tripPatternsForDate.get(date));
+        List<TripPatternForDate> tripPatternForDate = tripPatternsForDate.get(date);
+        return tripPatternForDate != null ? new ArrayList<>(tripPatternsForDate.get(date)) : null;
     }
 
     public Collection<TripPatternForDate> getTripPatternsForDate(LocalDate date) {

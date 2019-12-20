@@ -40,6 +40,10 @@ public class TransitLayerUpdater {
       // TODO extract common logic between this and TransitLayerMapper
       List<TripPatternForDate> patternsForDate = transitLayer.getTripPatternsForDateCopy(date);
 
+      if (patternsForDate == null) {
+        continue;
+      }
+
       Map<org.opentripplanner.model.TripPattern, TripPatternForDate> patternsForDateMap =
           patternsForDate.stream()
               .collect(Collectors.toMap(t -> t.getTripPattern().getOriginalTripPattern(), t -> t));
